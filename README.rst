@@ -9,6 +9,9 @@ py-multihash
 .. image:: https://img.shields.io/travis/multiformats/py-multihash.svg?branch=master
         :target: https://travis-ci.org/multiformats/py-multihash?branch=master
 
+.. image:: https://codecov.io/gh/multiformats/py-multihash/branch/master/graph/badge.svg
+        :target: https://codecov.io/gh/multiformats/py-multihash
+
 .. image:: https://readthedocs.org/projects/multihash/badge/?version=stable
         :target: https://multihash.readthedocs.io/en/stable/?badge=stable
         :alt: Documentation Status
