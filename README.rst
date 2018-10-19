@@ -9,8 +9,8 @@ py-multihash
 .. image:: https://img.shields.io/travis/multiformats/py-multihash.svg?branch=master
         :target: https://travis-ci.org/multiformats/py-multihash?branch=master
 
-.. image:: https://readthedocs.org/projects/py-multihash/badge/?version=stable
-        :target: https://py-multihash.readthedocs.io/en/stable/?badge=stable
+.. image:: https://readthedocs.org/projects/multihash/badge/?version=stable
+        :target: https://multihash.readthedocs.io/en/stable/?badge=stable
         :alt: Documentation Status
 
 
@@ -19,6 +19,6 @@ Multihash implementation in Python
 
 
 * Free software: MIT license
-* Documentation: https://py-multihash.readthedocs.io.
+* Documentation: https://multihash.readthedocs.io.
 * Python versions: Python 3.5, 3.6
 
