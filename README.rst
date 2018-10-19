@@ -20,5 +20,5 @@ Multihash implementation in Python
 
 * Free software: MIT license
 * Documentation: https://multihash.readthedocs.io.
-* Python versions: Python 3.5, 3.6
+* Python versions: Python 3.4, 3.5, 3.6
 
