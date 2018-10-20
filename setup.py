@@ -12,17 +12,17 @@ with open('HISTORY.rst') as history_file:
     history = history_file.read()
 
 requirements = [
-    'varint==1.0.2',
-    'six==1.10.0',
-    'morphys==1.0',
-    'base58==1.0.2',
+    'varint>=1.0.2,<2.0',
+    'six>=1.10.0,<2.0',
+    'morphys>=1.0,<2.0',
+    'base58>=1.0.2,<2.0',
 ]
 
 setup_requirements = ['pytest-runner', ]
 
 test_requirements = [
     'pytest',
-    'pytest-cov==2.5.1',
+    'pytest-cov',
     # TODO: put package test requirements here
 ]
 

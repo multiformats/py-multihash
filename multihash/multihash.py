@@ -3,7 +3,6 @@ from binascii import hexlify
 from collections import namedtuple
 from io import BytesIO
 
-from morphys import ensure_bytes, ensure_unicode
 import base58
 import varint
 
