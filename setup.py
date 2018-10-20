@@ -28,7 +28,7 @@ test_requirements = [
 
 setup(
     name='py-multihash',
-    version='0.2.1',
+    version='0.2.2',
     description="Multihash implementation in Python",
     long_description=readme + '\n\n' + history,
     author="Dhruv Baldawa",
