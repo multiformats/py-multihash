@@ -228,6 +228,20 @@ class DecodeTestCase(object):
         assert r.length == len(actual)
         assert actual == expected
 
+    def test_decode_app_code(self):
+        """ decode: works for all app codes """
+        code = 0x08
+        hex_ = 'fdfdfdfdfd'
+        buffer = make_hash(code, 5, hex_)
+        actual = bytes.fromhex(hex_)
+
+        r = decode(buffer)
+        expected = r.digest
+
+        assert r.code == code
+        assert r.length == len(actual)
+        assert actual == expected
+
     @pytest.mark.parametrize('value', INVALID_BYTE_TYPES)
     def test_decode_incorrect_types(self, value):
         """ decode: raises TypeError if the type is incorrect """

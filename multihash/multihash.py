@@ -161,7 +161,7 @@ def decode(multihash):
     if len(buf) != length:
         raise ValueError('Inconsistent multihash length {} != {}'.format(len(buf), length))
 
-    return Multihash(code=code, name=constants.CODE_HASHES[code], length=length, digest=buf)
+    return Multihash(code=code, name=constants.CODE_HASHES.get(code, code), length=length, digest=buf)
 
 
 def encode(digest, code, length=None):
