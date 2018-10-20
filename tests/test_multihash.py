@@ -257,12 +257,18 @@ class DecodeTestCase(object):
         assert 'Invalid length' in str(excinfo.value)
 
     def test_decode_unequal_length(self):
-        """ decode: raises Error if the length is not same """
+        """ decode: raises ValueError if the length is not same """
         value = make_hash(0x13, 40, 'ffffffff')
         with pytest.raises(ValueError) as excinfo:
             decode(value)
         assert 'Inconsistent multihash length' in str(excinfo.value)
 
+    def test_decode_invalid_varint(self):
+        """ decode: raises ValueError if invalid varint is provided """
+        value = b'\xff\xff\xff'
+        with pytest.raises(ValueError) as excinfo:
+            decode(value)
+        assert 'Invalid varint provided' in str(excinfo.value)
 
 class EncodeTestCase(object):
     @pytest.mark.parametrize('value', VALID_TABLE)

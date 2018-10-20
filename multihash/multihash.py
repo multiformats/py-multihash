@@ -143,7 +143,11 @@ def decode(multihash):
         raise ValueError('multihash must be greater than 3 bytes.')
 
     buffer = BytesIO(multihash)
-    code = varint.decode_stream(buffer)
+    try:
+        code = varint.decode_stream(buffer)
+    except TypeError:
+        raise ValueError('Invalid varint provided')
+
     if not is_valid_code(code):
         raise ValueError('Unsupported hash code {}'.format(code))
 
