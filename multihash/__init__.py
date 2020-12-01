@@ -4,7 +4,7 @@
 
 __author__ = """Dhruv Baldawa"""
 __email__ = 'dhruv@dhruvb.com'
-__version__ = '1.0.0'
+__version__ = '2.0.0'
 
 from .multihash import (
     Multihash, to_hex_string, from_hex_string, to_b58_string, from_b58_string, is_app_code,
