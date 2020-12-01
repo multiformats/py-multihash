@@ -79,8 +79,8 @@ verify_description:
 	python setup.py --long-description | rst2html.py > /dev/null
 
 release: clean verify_description ## package and upload a release
-	python setup.py sdist upload
-	python setup.py bdist_wheel upload
+	python setup.py sdist bdist_wheel
+	twine upload dist/*
 
 dist: clean ## builds source and wheel package
 	python setup.py sdist
