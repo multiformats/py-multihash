@@ -12,10 +12,10 @@ with open('HISTORY.rst') as history_file:
     history = history_file.read()
 
 requirements = [
-    'varint>=1.0.2,<2.0',
-    'six>=1.10.0,<2.0',
-    'morphys>=1.0,<2.0',
-    'base58>=1.0.2,<3.0',
+    'varint',
+    'six',
+    'morphys',
+    'base58',
 ]
 
 setup_requirements = ['pytest-runner', ]
@@ -28,11 +28,12 @@ test_requirements = [
 
 setup(
     name='py-multihash',
-    version='2.0.0',
+    version='2.1.0',
     description="Multihash implementation in Python",
     long_description=readme + '\n\n' + history,
     author="Dhruv Baldawa",
     author_email='dhruv@dhruvb.com',
+    python_requires='>=3.6',
     classifiers=[
         'Development Status :: 2 - Pre-Alpha',
         'Intended Audience :: Developers',
@@ -40,10 +41,10 @@ setup(
         'Natural Language :: English',
 
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.4',
-        'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.9',
     ],
     install_requires=requirements,
     license="MIT license",
