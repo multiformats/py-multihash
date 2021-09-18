@@ -11,4 +11,4 @@ twine==1.14.0
 watchdog[watchmedo]==0.10.3
 wheel
 codecov
-skein=1.0
+pyskein==1.0
