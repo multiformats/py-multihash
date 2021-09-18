@@ -25,3 +25,16 @@ Multihash implementation in Python
 * Documentation: https://multihash.readthedocs.io.
 * Python versions: Python 3.4, 3.5, 3.6
 
+Example usage::
+    
+    import multihash
+
+    # compute multihash digest as bytes
+    multihash_bytes = multihash.digest(b'hello world', 'sha2-256')
+    print(multihash.to_b58_string(multihash_bytes))
+    # QmaozNR7DZHQK1ZcU9p7QdrshMvXqWK6gpu5rmrkPdT3L4
+
+    # compute multihash digest as base58 string
+    multihash_str = multihash.b58digest(b'hello world', 'sha2-256')
+    print(multihash_str)
+    # QmaozNR7DZHQK1ZcU9p7QdrshMvXqWK6gpu5rmrkPdT3L4

@@ -1,23 +1,42 @@
 """
     Core functions for the `multihash` module.
 """
+# pylint: disable = redefined-outer-name
 
 # -*- coding: utf-8 -*-
 
-from binascii import hexlify
-from collections import namedtuple
+import hashlib
 from io import BytesIO
+from typing import NamedTuple, Optional, Union
 
 import base58 # type: ignore
+import skein # type: ignore
 import varint # type: ignore
 
 from multihash import constants
 
 
-Multihash = namedtuple('Multihash', 'code,name,length,digest')
+# Multihash = namedtuple('Multihash', 'code,name,length,digest')
+
+class Multihash(NamedTuple):
+    """
+        Typed named tuple class for multihash.
+    """
+
+    code: int
+    """ Hash function code. """
+
+    name: Union[int, str]
+    """ Hash function name if available, same as `code` otherwise. """
+
+    length: int
+    """ Hash length. """
+
+    digest: bytes
+    """ Hash digest. """
 
 
-def to_hex_string(multihash):
+def to_hex_string(multihash: bytes) -> str:
     """
     Convert the given multihash to a hex encoded string
 
@@ -29,10 +48,10 @@ def to_hex_string(multihash):
     if not isinstance(multihash, bytes):
         raise TypeError('multihash should be bytes, not {}'.format(type(multihash)))
 
-    return hexlify(multihash).decode()
+    return multihash.hex()
 
 
-def from_hex_string(multihash):
+def from_hex_string(multihash: str) -> bytes:
     """
     Convert the given hex encoded string to a multihash
 
@@ -47,7 +66,7 @@ def from_hex_string(multihash):
     return bytes.fromhex(multihash)
 
 
-def to_b58_string(multihash):
+def to_b58_string(multihash: bytes) -> str:
     """
     Convert the given multihash to a base58 encoded string
 
@@ -62,7 +81,7 @@ def to_b58_string(multihash):
     return base58.b58encode(multihash).decode()
 
 
-def from_b58_string(multihash):
+def from_b58_string(multihash: str) -> bytes:
     """
     Convert the given base58 encoded string to a multihash
 
@@ -77,7 +96,7 @@ def from_b58_string(multihash):
     return base58.b58decode(multihash)
 
 
-def is_app_code(code):
+def is_app_code(code: int) -> bool:
     """
     Checks whether a code is part of the app range
 
@@ -88,7 +107,7 @@ def is_app_code(code):
     return 0 < code < 0x10
 
 
-def coerce_code(hash_fn):
+def coerce_code(hash_fn: Union[int, str]) -> int:
     """
     Converts a hash function name into its code
 
@@ -101,7 +120,7 @@ def coerce_code(hash_fn):
     :rtype: int
     :raises ValueError: if the hash function is not supported
     :raises ValueError: if the hash code is not supported
-    :raises ValueError: if the hash type is not a string or an int
+    :raises TypeError: if the hash type is not a string or an int
     """
     if isinstance(hash_fn, str):
         try:
@@ -117,7 +136,7 @@ def coerce_code(hash_fn):
     raise TypeError('hash code should be either an integer or a string')
 
 
-def is_valid_code(code):
+def is_valid_code(code: int) -> bool:
     """
     Checks whether a multihash code is valid or not
 
@@ -128,7 +147,7 @@ def is_valid_code(code):
     return is_app_code(code) or code in constants.CODE_HASHES
 
 
-def decode(multihash):
+def decode(multihash: bytes) -> Multihash:
     """
     Decode a hash from the given multihash
 
@@ -149,7 +168,7 @@ def decode(multihash):
 
     buffer = BytesIO(multihash)
     try:
-        code = varint.decode_stream(buffer)
+        code: int = varint.decode_stream(buffer)
     except TypeError as e:
         raise ValueError('Invalid varint provided') from e
 
@@ -157,34 +176,34 @@ def decode(multihash):
         raise ValueError('Unsupported hash code {}'.format(code))
 
     try:
-        length = varint.decode_stream(buffer)
+        length: int = varint.decode_stream(buffer)
     except TypeError as e:
         raise ValueError('Invalid length provided') from e
 
-    buf = buffer.read()
+    digest = buffer.read()
 
-    if len(buf) != length:
-        raise ValueError('Inconsistent multihash length {} != {}'.format(len(buf), length))
+    if len(digest) != length:
+        raise ValueError('Inconsistent multihash length {} != {}'.format(len(digest), length))
 
     return Multihash(code=code,
                      name=constants.CODE_HASHES.get(code, code),
                      length=length,
-                     digest=buf)
+                     digest=digest)
 
 
-def encode(digest, code, length=None):
+def encode(digest: bytes, hash_fn: Union[int, str], length: Optional[int] = None) -> bytes:
     """
     Encode a hash digest along with the specified function code
 
     :param bytes digest: hash digest
-    :param (int or str) code: hash function code
+    :param (int or str) hash_fn: hash function code or name
     :param int length: hash digest length
     :return: encoded multihash
     :rtype: bytes
     :raises TypeError: when the digest is not a bytes object
     :raises ValueError: when the digest length is not correct
     """
-    hash_code = coerce_code(code)
+    hash_code = coerce_code(hash_fn)
 
     if not isinstance(digest, bytes):
         raise TypeError('digest must be a bytes object, not {}'.format(type(digest)))
@@ -198,7 +217,7 @@ def encode(digest, code, length=None):
     return varint.encode(hash_code) + varint.encode(length) + digest
 
 
-def is_valid(multihash):
+def is_valid(multihash: bytes) -> bool:
     """
     Check if the given buffer is a valid multihash
 
@@ -213,7 +232,7 @@ def is_valid(multihash):
         return False
 
 
-def get_prefix(multihash):
+def get_prefix(multihash: bytes) -> bytes:
     """
     Return the prefix from the multihash
 
@@ -226,3 +245,116 @@ def get_prefix(multihash):
         return multihash[:2]
 
     raise ValueError('invalid multihash')
+
+
+def digest(data: bytes, hash_fn: Union[int, str]) -> bytes:
+    """
+    End-to-end multi-hashing of given `data`, using given hash function (by name or code).
+    Returns the multihash as bytes.
+
+    :param hash_fn: The input hash function can be
+        - str, the name of the hash function
+        - int, the code of the hash function
+    :param bytes data: data to be hashed
+    :return: multihash of the given data using the given hash function
+    :rtype: bytes
+    :raises TypeError: when `data` is not a bytes object
+    :raises ValueError: if the hash function is not supported
+    :raises ValueError: if the hash code is not supported
+    :raises TypeError: if the hash type is not a string or an int
+    :raises ValueError: if the hash code is an app code
+    """
+    if not isinstance(data, bytes):
+        raise TypeError('data should be bytes, not {}'.format(type(data)))
+    code = coerce_code(hash_fn)
+    digest: Optional[bytes] = None
+    if code in constants.CODE_HASHES:
+        length = constants.HASH_LENGTHS[code]
+        name = constants.CODE_HASHES[code]
+        if name == 'id':
+            digest = data
+        if digest is None:
+            digest = _digest_hashlib(name, data, length)
+        if digest is None:
+            digest = _digest_skein(name, data, length)
+    if digest is None:
+        hash_label = hash_fn if isinstance(hash_fn, str) else hex(hash_fn)
+        raise ValueError('Unsupported end-to-end hashing for hash function {}'.format(hash_label))
+    return encode(digest, hash_fn, length=length)
+
+def b58digest(data: bytes, hash_fn: Union[int, str]) -> str:
+    """
+    End-to-end multi-hashing of given `data`, using given hash function (by name or code).
+    Returns the multihash as a based58-encoded string.
+
+    :param hash_fn: The input hash function can be
+        - str, the name of the hash function
+        - int, the code of the hash function
+    :param bytes data: data to be hashed
+    :return: base58-encoded multihash of the given data using the given hash function
+    :rtype: str
+    :raises TypeError: when `data` is not a bytes object
+    :raises ValueError: if the hash function is not supported
+    :raises ValueError: if the hash code is not supported
+    :raises TypeError: if the hash type is not a string or an int
+    :raises ValueError: if the hash code is an app code
+    """
+    return to_b58_string(digest(data, hash_fn))
+
+
+def _digest_hashlib(hash_fn: str, data: bytes, length: Optional[int]) -> Optional[bytes]:
+    if hash_fn == 'sha1':
+        family = 'sha1'
+        m = hashlib.sha1()
+    else:
+        try:
+            sep_idx = hash_fn.rindex('-')
+        except ValueError:
+            return None
+        family, reported_len = hash_fn[:sep_idx], hash_fn[sep_idx+1:]
+        assert length is not None, 'length must be specified.'
+        exp_reported_len = str(length*4 if family == 'shake' else length*8)
+        error_msg = 'inconsistent hash length: {} {}.'.format(reported_len, exp_reported_len)
+        assert reported_len == exp_reported_len, error_msg
+        if family == 'sha2':
+            if length not in (0x20, 0x40):
+                return None
+            m = getattr(hashlib, 'sha{}'.format(length*8))()
+        elif family == 'sha3':
+            if length not in (0x40, 0x30, 0x20, 0x1c):
+                return None
+            m = getattr(hashlib, 'sha3_{}'.format(length*8))()
+        elif family == 'shake':
+            if length not in (0x20, 0x40):
+                return None
+            m = getattr(hashlib, 'shake_{}'.format(length*4))()
+        elif family in ('blake2b', 'blake2s'):
+            m = getattr(hashlib, family)(digest_size=length)
+        else:
+            return None
+    m.update(data)
+    if family == 'shake':
+        digest = m.digest(length)
+    else:
+        digest = m.digest()
+    assert len(digest) == length
+    return digest
+
+
+def _digest_skein(hash_fn: str, data: bytes, length: Optional[int]) -> Optional[bytes]:
+    try:
+        sep_idx = hash_fn.rindex('-')
+    except ValueError:
+        return None
+    family, reported_len = hash_fn[:sep_idx], hash_fn[sep_idx+1:]
+    assert length is not None, 'length must be specified.'
+    error_msg = 'inconsistent hash length: {} {}.'.format(int(reported_len), length*8)
+    assert int(reported_len) == length*8, error_msg
+    if family in ('Skein256', 'Skein512', 'Skein1024'):
+        m = getattr(skein, family.lower())(digest_bits=length*8)
+    else:
+        return None
+    m.update(data)
+    digest = m.digest()
+    assert len(digest) == length
+    return digest

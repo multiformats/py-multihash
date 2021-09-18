@@ -3,14 +3,16 @@
 
 """Tests for `multihash` package."""
 from binascii import hexlify
+import hashlib
 
 import base58
 import pytest
 import varint
+import skein
 
 from multihash import (
     encode, decode, from_hex_string, to_hex_string, to_b58_string, from_b58_string, is_app_code, is_valid,
-    is_valid_code, get_prefix, coerce_code,
+    is_valid_code, get_prefix, coerce_code, digest
 )
 from multihash.constants import HASH_TABLE
 
@@ -342,3 +344,123 @@ class GetPrefixTestCase(object):
         """ get_prefix: raises ValueError for invalid cases """
         with pytest.raises(ValueError):
             get_prefix(b'foobar')
+
+
+def id_digest(data):
+    return data
+
+def sha1_digest(data):
+    m = hashlib.sha1()
+    m.update(data)
+    return m.digest()
+
+def sha2_digest(data, length):
+    m = getattr(hashlib, 'sha{}'.format(length*8))()
+    m.update(data)
+    return m.digest()
+
+def sha3_digest(data, length):
+    m = getattr(hashlib, 'sha3_{}'.format(length*8))()
+    m.update(data)
+    return m.digest()
+
+def shake_digest(data, length):
+    m = getattr(hashlib, 'shake_{}'.format(length*4))()
+    m.update(data)
+    return m.digest(length)
+
+def blake2_digest(data, variant, length):
+    assert variant in ('b', 's')
+    m = getattr(hashlib, 'blake2{}'.format(variant))(digest_size=length)
+    m.update(data)
+    return m.digest()
+
+def skein_digest(data, variant, length):
+    assert variant in (256, 512, 1024)
+    m = getattr(skein, 'skein{}'.format(variant))(digest_bits=length*8)
+    m.update(data)
+    return m.digest()
+
+
+DIGEST_DATA = {
+    prefix: tuple(
+        { 'data': b"Bytes to be hashed.", 'length': length }
+        for length in (entry.get('length') for entry in HASH_TABLE
+                       if str(entry['hash']).startswith(prefix))
+    )
+    for prefix in ('id', 'sha1', 'sha2', 'sha3', 'shake',
+                   'blake2b', 'blake2s', 'Skein256', 'Skein512', 'Skein1024')
+}
+
+
+class DigestTestCase(object):
+
+    @pytest.mark.parametrize('value', DIGEST_DATA['id'])
+    def test_id(self, value):
+        """ test_id: id hash works """
+        hash_fn = 'id'
+        data, length = (value['data'], value['length'])
+        assert encode(id_digest(data), hash_fn) == digest(data, hash_fn)
+
+    @pytest.mark.parametrize('value', DIGEST_DATA['sha1'])
+    def test_sha1(self, value):
+        """ test_sha1: sha1 hash works """
+        hash_fn = 'sha1'
+        data, length = (value['data'], value['length'])
+        assert encode(sha1_digest(data), hash_fn) == digest(data, hash_fn)
+
+    @pytest.mark.parametrize('value', DIGEST_DATA['sha2'])
+    def test_sha2(self, value):
+        """ test_sha2: sha2 hash works """
+        data, length = (value['data'], value['length'])
+        hash_fn = 'sha2-{}'.format(length*8)
+        assert encode(sha2_digest(data, length), hash_fn, length) == digest(data, hash_fn)
+
+    @pytest.mark.parametrize('value', DIGEST_DATA['sha3'])
+    def test_sha3(self, value):
+        """ test_sha3: sha3 hash works """
+        data, length = (value['data'], value['length'])
+        hash_fn = 'sha3-{}'.format(length*8)
+        assert encode(sha3_digest(data, length), hash_fn, length) == digest(data, hash_fn)
+
+    @pytest.mark.parametrize('value', DIGEST_DATA['shake'])
+    def test_shake(self, value):
+        """ test_shake: shake hash works """
+        data, length = (value['data'], value['length'])
+        hash_fn = 'shake-{}'.format(length*4)
+        assert encode(shake_digest(data, length), hash_fn, length) == digest(data, hash_fn)
+
+    @pytest.mark.parametrize('value', DIGEST_DATA['blake2b'])
+    def test_blake2b(self, value):
+        """ test_blake2b: blake2b hash works """
+        data, length = (value['data'], value['length'])
+        hash_fn = 'blake2b-{}'.format(length*8)
+        assert encode(blake2_digest(data, 'b', length), hash_fn, length) == digest(data, hash_fn)
+
+    @pytest.mark.parametrize('value', DIGEST_DATA['blake2s'])
+    def test_blake2s(self, value):
+        """ test_blake2s: blake2s hash works """
+        data, length = (value['data'], value['length'])
+        hash_fn = 'blake2s-{}'.format(length*8)
+        assert encode(blake2_digest(data, 's', length), hash_fn, length) == digest(data, hash_fn)
+
+    @pytest.mark.parametrize('value', DIGEST_DATA['Skein256'])
+    def test_skein256(self, value):
+        """ test_skein256: Skein256 hash works """
+        data, length = (value['data'], value['length'])
+        hash_fn = 'Skein256-{}'.format(length*8)
+        assert encode(skein_digest(data, 256, length), hash_fn, length) == digest(data, hash_fn)
+
+    @pytest.mark.parametrize('value', DIGEST_DATA['Skein512'])
+    def test_skein512(self, value):
+        """ test_skein256: Skein512 hash works """
+        data, length = (value['data'], value['length'])
+        hash_fn = 'Skein512-{}'.format(length*8)
+        assert encode(skein_digest(data, 512, length), hash_fn, length) == digest(data, hash_fn)
+
+    @pytest.mark.parametrize('value', DIGEST_DATA['Skein1024'])
+    def test_skein1024(self, value):
+        """ test_skein256: Skein1024 hash works """
+        data, length = (value['data'], value['length'])
+        hash_fn = 'Skein1024-{}'.format(length*8)
+        assert encode(skein_digest(data, 1024, length), hash_fn, length) == digest(data, hash_fn)

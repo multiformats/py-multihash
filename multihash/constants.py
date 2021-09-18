@@ -6,6 +6,9 @@
     - `HASH_LENGTHS` maps hash function codes to the length of the hashes
 """
 
+from typing import Mapping, Optional
+
+# in 3.8+, this can be statically typed with a TypedDict.
 HASH_TABLE = (
     {'code': 0x0, 'hash': 'id'},
     {'code': 0x11, 'length': 0x14, 'hash': 'sha1'},
@@ -346,6 +349,17 @@ HASH_TABLE = (
     {'code': 0xb3e0, 'length': 0x80, 'hash': 'Skein1024-1024'},
 )
 
-HASH_CODES = {x['hash']: x['code'] for x in HASH_TABLE}
-CODE_HASHES = {x['code']: x['hash'] for x in HASH_TABLE}
-HASH_LENGTHS = {x['code']: x.get('length') for x in HASH_TABLE}
+HASH_CODES: Mapping[str, int] = {
+    x['hash']: x['code'] # type: ignore
+    for x in HASH_TABLE
+}
+
+CODE_HASHES: Mapping[int, str] = {
+    x['code']: x['hash'] # type: ignore
+    for x in HASH_TABLE
+}
+
+HASH_LENGTHS: Mapping[int, Optional[int]] = {
+    x['code']: x.get('length') # type: ignore
+    for x in HASH_TABLE
+}

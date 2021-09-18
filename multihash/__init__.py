@@ -8,5 +8,5 @@ __version__ = '2.0.0'
 
 from .multihash import (
     Multihash, to_hex_string, from_hex_string, to_b58_string, from_b58_string, is_app_code,
-    coerce_code, is_valid_code, decode, encode, is_valid, get_prefix,
+    coerce_code, is_valid_code, decode, encode, is_valid, get_prefix, digest
 )

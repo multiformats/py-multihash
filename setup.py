@@ -3,7 +3,7 @@
 
 """The setup script."""
 
-from setuptools import setup, find_packages
+from setuptools import setup, find_packages #type: ignore
 
 with open('README.rst') as readme_file:
     readme = readme_file.read()
@@ -16,6 +16,7 @@ requirements = [
     'six>=1.10.0,<2.0',
     'morphys>=1.0,<2.0',
     'base58>=1.0.2,<3.0',
+    'pyskein>=1.0,<2.0'
 ]
 
 setup_requirements = ['pytest-runner', ]
@@ -38,12 +39,13 @@ setup(
         'Intended Audience :: Developers',
         'License :: OSI Approved :: MIT License',
         'Natural Language :: English',
+        "Typing :: Typed",
 
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.4',
-        'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.9',
     ],
     install_requires=requirements,
     license="MIT license",
@@ -55,4 +57,7 @@ setup(
     tests_require=test_requirements,
     url='https://github.com/multiformats/multihash',
     zip_safe=False,
+    package_data={"": [],
+                  "multihash": ["multihash/py.typed"],
+                 },
 )
