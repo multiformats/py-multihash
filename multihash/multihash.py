@@ -1,12 +1,17 @@
+"""
+    Core functions for the `multihash` module.
+"""
+
 # -*- coding: utf-8 -*-
+
 from binascii import hexlify
 from collections import namedtuple
 from io import BytesIO
 
-import base58
-import varint
+import base58 # type: ignore
+import varint # type: ignore
 
-import multihash.constants as constants
+from multihash import constants
 
 
 Multihash = namedtuple('Multihash', 'code,name,length,digest')
@@ -101,8 +106,8 @@ def coerce_code(hash_fn):
     if isinstance(hash_fn, str):
         try:
             return constants.HASH_CODES[hash_fn]
-        except KeyError:
-            raise ValueError('Unsupported hash function {}'.format(hash_fn))
+        except KeyError as e:
+            raise ValueError('Unsupported hash function {}'.format(hash_fn)) from e
 
     elif isinstance(hash_fn, int):
         if hash_fn in constants.CODE_HASHES or is_app_code(hash_fn):
@@ -137,7 +142,7 @@ def decode(multihash):
     :raises ValueError: if the length is not same as the digest
     """
     if not isinstance(multihash, bytes):
-        raise TypeError('multihash should be bytes, not {}', type(multihash))
+        raise TypeError('multihash should be bytes, not {}'.format(type(multihash)))
 
     if len(multihash) < 3:
         raise ValueError('multihash must be greater than 3 bytes.')
@@ -145,23 +150,26 @@ def decode(multihash):
     buffer = BytesIO(multihash)
     try:
         code = varint.decode_stream(buffer)
-    except TypeError:
-        raise ValueError('Invalid varint provided')
+    except TypeError as e:
+        raise ValueError('Invalid varint provided') from e
 
     if not is_valid_code(code):
         raise ValueError('Unsupported hash code {}'.format(code))
 
     try:
         length = varint.decode_stream(buffer)
-    except TypeError:
-        raise ValueError('Invalid length provided')
+    except TypeError as e:
+        raise ValueError('Invalid length provided') from e
 
     buf = buffer.read()
 
     if len(buf) != length:
         raise ValueError('Inconsistent multihash length {} != {}'.format(len(buf), length))
 
-    return Multihash(code=code, name=constants.CODE_HASHES.get(code, code), length=length, digest=buf)
+    return Multihash(code=code,
+                     name=constants.CODE_HASHES.get(code, code),
+                     length=length,
+                     digest=buf)
 
 
 def encode(digest, code, length=None):

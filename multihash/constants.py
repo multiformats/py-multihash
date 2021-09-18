@@ -1,3 +1,11 @@
+"""
+    This module exposes the following tables:
+
+    - `HASH_CODES` maps hash function names to the corresponding numerical codes
+    - `CODE_HASHES` maps hash function codes to the corresponding human-readable names
+    - `HASH_LENGTHS` maps hash function codes to the length of the hashes
+"""
+
 HASH_TABLE = (
     {'code': 0x0, 'hash': 'id'},
     {'code': 0x11, 'length': 0x14, 'hash': 'sha1'},
