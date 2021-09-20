@@ -9,9 +9,9 @@ import hashlib
 from io import BytesIO
 from typing import NamedTuple, Optional, Union
 
-import base58 # type: ignore
-import skein # type: ignore
-import varint # type: ignore
+import base58  # type: ignore
+import skein  # type: ignore
+import varint  # type: ignore
 
 from multihash import constants
 
@@ -45,6 +45,7 @@ def to_hex_string(multihash: bytes) -> str:
     :rtype: str
     :raises: `TypeError`, if the `multihash` has incorrect type
     """
+    # TODO: consider deprecating this, since `bytes.hex()` is a built-in instance method.
     if not isinstance(multihash, bytes):
         raise TypeError('multihash should be bytes, not {}'.format(type(multihash)))
 
@@ -60,6 +61,7 @@ def from_hex_string(multihash: str) -> bytes:
     :rtype: bytes
     :raises: `TypeError`, if the `multihash` has incorrect type
     """
+    # TODO: consider deprecating this, since `bytes.fromhex(string)` is a built-in class method.
     if not isinstance(multihash, str):
         raise TypeError('multihash should be str, not {}'.format(type(multihash)))
 
@@ -282,6 +284,7 @@ def digest(data: bytes, hash_fn: Union[int, str]) -> bytes:
         raise ValueError('Unsupported end-to-end hashing for hash function {}'.format(hash_label))
     return encode(digest, hash_fn, length=length)
 
+
 def b58digest(data: bytes, hash_fn: Union[int, str]) -> str:
     """
     End-to-end multi-hashing of given `data`, using given hash function (by name or code).
@@ -334,7 +337,7 @@ def _digest_hashlib(hash_fn: str, data: bytes, length: Optional[int]) -> Optiona
             return None
     m.update(data)
     if family == 'shake':
-        digest = m.digest(length)
+        digest = m.digest(length)  # type: ignore
     else:
         digest = m.digest()
     assert len(digest) == length

@@ -2,17 +2,18 @@
 # -*- coding: utf-8 -*-
 
 """Tests for `multihash` package."""
+# pylint: disable = missing-function-docstring, missing-class-docstring, no-self-use
+
 from binascii import hexlify
 import hashlib
 
 import base58
 import pytest
-import varint
-import skein
+import skein  # type: ignore
 
 from multihash import (
-    encode, decode, from_hex_string, to_hex_string, to_b58_string, from_b58_string, is_app_code, is_valid,
-    is_valid_code, get_prefix, coerce_code, digest
+    encode, decode, from_hex_string, to_hex_string, to_b58_string, from_b58_string, is_app_code,
+    is_valid, is_valid_code, get_prefix, coerce_code, digest
 )
 from multihash.constants import HASH_TABLE
 
@@ -90,12 +91,13 @@ INVALID_TABLE = (
     {
         'code': 0xb23f,
         'length': 0x3f,
-        'hex': '2c26b46b68ffc68ff99b453c1d30413413422d706483bfa0f98a5e886266e72c26b46b6f8ffc68ff99b453c1d30413413422d706483bfa0f98a5e886266e'
+        'hex': ('2c26b46b68ffc68ff99b453c1d30413413422d706483bfa0f98a5e886266e7'
+                '2c26b46b6f8ffc68ff99b453c1d30413413422d706483bfa0f98a5e886266e')
     },
 )
 
-INVALID_BYTE_TYPES = ('a', 1, 1.0, [], {})
-INVALID_STRING_TYPES = (b'a', 1, 1.0, [], {})
+INVALID_BYTE_TYPES: tuple = ('a', 1, 1.0, [], {})
+INVALID_STRING_TYPES: tuple = (b'a', 1, 1.0, [], {})
 
 
 def make_hash(code, size, hex_):
@@ -104,7 +106,7 @@ def make_hash(code, size, hex_):
         bytes.fromhex(hex_)
 
 
-class ToHexStringTestCase(object):
+class ToHexStringTestCase:
     @pytest.mark.parametrize('value', VALID_TABLE)
     def test_to_hex_string_valid(self, value):
         """ to_hex_string: test if it passes for all valid cases """
@@ -120,7 +122,7 @@ class ToHexStringTestCase(object):
         assert 'multihash should be bytes' in str(excinfo.value)
 
 
-class FromHexStringTestCase(object):
+class FromHexStringTestCase:
     @pytest.mark.parametrize('value', VALID_TABLE)
     def test_from_digest_string_valid(self, value):
         """ from_hex_string: decodes the correct values """
@@ -136,7 +138,7 @@ class FromHexStringTestCase(object):
         assert 'multihash should be str' in str(excinfo.value)
 
 
-class To58StringTestCase(object):
+class To58StringTestCase:
     @pytest.mark.parametrize('value', VALID_TABLE)
     def test_to_b58_string_valid(self, value):
         """ to_b58_string: test if it passes for all valid cases """
@@ -152,7 +154,7 @@ class To58StringTestCase(object):
         assert 'multihash should be bytes' in str(excinfo.value)
 
 
-class FromB58StringTestCase(object):
+class FromB58StringTestCase:
     def test_from_b58_string_valid(self):
         """ from_b58_string: test if it passes for all valid cases """
         expected = 'QmPfjpVaf593UQJ9a5ECvdh2x17XuJYG5Yanv5UFnH3jPE'
@@ -167,7 +169,7 @@ class FromB58StringTestCase(object):
         assert 'multihash should be str' in str(excinfo.value)
 
 
-class IsAppCodeTestCase(object):
+class IsAppCodeTestCase:
     @pytest.mark.parametrize('value', (0x01, 0x0f, 0x04))
     def test_is_app_code_valid(self, value):
         """ is_app_code: returns True for all valid cases """
@@ -179,7 +181,7 @@ class IsAppCodeTestCase(object):
         assert not is_app_code(value)
 
 
-class CoerceCodeTestCase(object):
+class CoerceCodeTestCase:
     @pytest.mark.parametrize('value', HASH_TABLE[:15] + HASH_TABLE[:15])
     def test_coerce_code_valid(self, value):
         """ coerce_code: returns code for all valid cases """
@@ -201,7 +203,7 @@ class CoerceCodeTestCase(object):
         assert 'should be either an integer or a string' in str(excinfo.value)
 
 
-class IsValidCodeTestCase(object):
+class IsValidCodeTestCase:
     @pytest.mark.parametrize('value', (0x02, 0x0f, 0x13))
     def test_is_valid_code_valid(self, value):
         """ is_valid_code: returns True for all valid cases """
@@ -213,7 +215,7 @@ class IsValidCodeTestCase(object):
         assert not is_valid_code(value)
 
 
-class DecodeTestCase(object):
+class DecodeTestCase:
     @pytest.mark.parametrize('value', VALID_TABLE)
     def test_decode_valid(self, value):
         """ decode: works for all valid cases """
@@ -286,15 +288,19 @@ class DecodeTestCase(object):
             decode(value)
         assert 'Invalid varint provided' in str(excinfo.value)
 
-class EncodeTestCase(object):
+
+class EncodeTestCase:
+
     @pytest.mark.parametrize('value', VALID_TABLE)
     def test_encode_valid(self, value):
         """ encode: encodes stuff for all valid cases """
         code = value['encoding']['code']
         actual = make_hash(code, value['length'], value['hex'])
         name = value['encoding']['name']
-        assert hexlify(encode(bytes.fromhex(value['hex']), code, value['length'])) == hexlify(actual)
-        assert hexlify(encode(bytes.fromhex(value['hex']), name, value['length'])) == hexlify(actual)
+        assert (hexlify(encode(bytes.fromhex(value['hex']), code, value['length']))
+                == hexlify(actual))  # note: round brackets only for line continuation
+        assert (hexlify(encode(bytes.fromhex(value['hex']), name, value['length']))
+                == hexlify(actual))  # note: round brackets only for line continuation
 
     @pytest.mark.parametrize('value', VALID_TABLE)
     def test_encode_no_length(self, value):
@@ -321,7 +327,9 @@ class EncodeTestCase(object):
             encode(value, 0x11)
         assert 'must be a bytes object' in str(excinfo.value)
 
-class IsValidTestCase(object):
+
+class IsValidTestCase:
+
     @pytest.mark.parametrize('value', VALID_TABLE)
     def test_is_valid_valid(self, value):
         """ is_valid: returns True for all valid cases """
@@ -333,7 +341,7 @@ class IsValidTestCase(object):
         assert not is_valid(make_hash(value['code'], value['length'], value['hex']))
 
 
-class GetPrefixTestCase(object):
+class GetPrefixTestCase:
     def test_get_prefix_valid(self):
         """ get_prefix: returns valid prefix """
         multihash = encode(b'foo', 0x11, 3)
@@ -349,31 +357,37 @@ class GetPrefixTestCase(object):
 def id_digest(data):
     return data
 
+
 def sha1_digest(data):
     m = hashlib.sha1()
     m.update(data)
     return m.digest()
+
 
 def sha2_digest(data, length):
     m = getattr(hashlib, 'sha{}'.format(length*8))()
     m.update(data)
     return m.digest()
 
+
 def sha3_digest(data, length):
     m = getattr(hashlib, 'sha3_{}'.format(length*8))()
     m.update(data)
     return m.digest()
+
 
 def shake_digest(data, length):
     m = getattr(hashlib, 'shake_{}'.format(length*4))()
     m.update(data)
     return m.digest(length)
 
+
 def blake2_digest(data, variant, length):
     assert variant in ('b', 's')
     m = getattr(hashlib, 'blake2{}'.format(variant))(digest_size=length)
     m.update(data)
     return m.digest()
+
 
 def skein_digest(data, variant, length):
     assert variant in (256, 512, 1024)
@@ -384,7 +398,7 @@ def skein_digest(data, variant, length):
 
 DIGEST_DATA = {
     prefix: tuple(
-        { 'data': b"Bytes to be hashed.", 'length': length }
+        {'data': b"Bytes to be hashed.", 'length': length}
         for length in (entry.get('length') for entry in HASH_TABLE
                        if str(entry['hash']).startswith(prefix))
     )
@@ -393,20 +407,20 @@ DIGEST_DATA = {
 }
 
 
-class DigestTestCase(object):
+class DigestTestCase:
 
     @pytest.mark.parametrize('value', DIGEST_DATA['id'])
     def test_id(self, value):
         """ test_id: id hash works """
         hash_fn = 'id'
-        data, length = (value['data'], value['length'])
+        data, _ = (value['data'], value['length'])
         assert encode(id_digest(data), hash_fn) == digest(data, hash_fn)
 
     @pytest.mark.parametrize('value', DIGEST_DATA['sha1'])
     def test_sha1(self, value):
         """ test_sha1: sha1 hash works """
         hash_fn = 'sha1'
-        data, length = (value['data'], value['length'])
+        data, _ = (value['data'], value['length'])
         assert encode(sha1_digest(data), hash_fn) == digest(data, hash_fn)
 
     @pytest.mark.parametrize('value', DIGEST_DATA['sha2'])

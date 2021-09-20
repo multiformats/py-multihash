@@ -12,11 +12,10 @@ with open('HISTORY.rst') as history_file:
     history = history_file.read()
 
 requirements = [
-    'varint>=1.0.2,<2.0',
-    'six>=1.10.0,<2.0',
-    'morphys>=1.0,<2.0',
-    'base58>=1.0.2,<3.0',
-    'pyskein>=1.0,<2.0'
+    'varint>=1.0.2',  # tested with 1.0.2
+    'six>=1.10.0',    # tested with 1.16.0
+    'base58>=1.0.2',  # tested with 2.1.0
+    'pyskein>=1.0'    # tested with 1.0
 ]
 
 setup_requirements = ['pytest-runner', ]

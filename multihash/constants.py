@@ -350,16 +350,16 @@ HASH_TABLE = (
 )
 
 HASH_CODES: Mapping[str, int] = {
-    x['hash']: x['code'] # type: ignore
+    x['hash']: x['code']  # type: ignore
     for x in HASH_TABLE
 }
 
 CODE_HASHES: Mapping[int, str] = {
-    x['code']: x['hash'] # type: ignore
+    x['code']: x['hash']  # type: ignore
     for x in HASH_TABLE
 }
 
 HASH_LENGTHS: Mapping[int, Optional[int]] = {
-    x['code']: x.get('length') # type: ignore
+    x['code']: x.get('length')  # type: ignore
     for x in HASH_TABLE
 }
