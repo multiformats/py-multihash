@@ -7,9 +7,11 @@ Table of contents
    :maxdepth: 2
    :caption: Contents:
 
-   index
+   readme
+   installation
    usage
    api_reference
+   modules
    contributing
    authors
    history

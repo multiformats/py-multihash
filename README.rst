@@ -1,5 +1,3 @@
-**This project is no longer maintained and has been archived.**
-
 ============
 py-multihash
 ============
@@ -8,14 +6,14 @@ py-multihash
 .. image:: https://img.shields.io/pypi/v/py-multihash.svg
         :target: https://pypi.python.org/pypi/py-multihash
 
-.. image:: https://img.shields.io/travis/multiformats/py-multihash.svg?branch=master
-        :target: https://travis-ci.org/multiformats/py-multihash?branch=master
+.. image:: https://github.com/multiformats/py-multihash/actions/workflows/tox.yml/badge.svg
+        :target: https://github.com/multiformats/py-multihash/actions
 
 .. image:: https://codecov.io/gh/multiformats/py-multihash/branch/master/graph/badge.svg
         :target: https://codecov.io/gh/multiformats/py-multihash
 
-.. image:: https://readthedocs.org/projects/multihash/badge/?version=stable
-        :target: https://multihash.readthedocs.io/en/stable/?badge=stable
+.. image:: https://readthedocs.org/projects/multihash/badge/?version=latest
+        :target: https://multihash.readthedocs.io/en/latest/?badge=latest
         :alt: Documentation Status
 
 
@@ -25,5 +23,4 @@ Multihash implementation in Python
 
 * Free software: MIT license
 * Documentation: https://multihash.readthedocs.io.
-* Python versions: Python 3.4, 3.5, 3.6
-
+* Python versions: Python 3.10, 3.11, 3.12, 3.13, 3.14
