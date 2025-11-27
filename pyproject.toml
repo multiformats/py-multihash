@@ -46,6 +46,7 @@ dev = [
     "pytest-cov",
     "pytest-runner",
     "ruff",
+    "towncrier>=24,<25",
     "tox>=4.10.0",
     "twine",
     "watchdog>=3.0.0",
@@ -78,6 +79,60 @@ exclude_lines = [
     "if 0:",
     "if __name__ == .__main__.:",
 ]
+
+[tool.towncrier]
+# Read https://github.com/multiformats/py-multihash/blob/master/newsfragments/README.md for instructions
+directory = "newsfragments"
+filename = "HISTORY.rst"
+issue_format = "`#{issue} <https://github.com/multiformats/py-multihash/issues/{issue}>`__"
+package = "multihash"
+title_format = "py-multihash v{version} ({project_date})"
+underlines = ["-", "~", "^"]
+
+[[tool.towncrier.type]]
+directory = "breaking"
+name = "Breaking Changes"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "bugfix"
+name = "Bugfixes"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "deprecation"
+name = "Deprecations"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "docs"
+name = "Improved Documentation"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "feature"
+name = "Features"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "internal"
+name = "Internal Changes - for py-multihash Contributors"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "misc"
+name = "Miscellaneous Changes"
+showcontent = false
+
+[[tool.towncrier.type]]
+directory = "performance"
+name = "Performance Improvements"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "removal"
+name = "Removals"
+showcontent = true
 
 [tool.bumpversion]
 current_version = "2.0.0"
