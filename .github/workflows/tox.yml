@@ -63,4 +63,3 @@ jobs:
           toxenv="${{ matrix.toxenv }}"
           echo "TOXENV=py${python_version}-${toxenv}" | tr -d '.' | tee -a "$GITHUB_ENV"
           python -m tox run -r
-

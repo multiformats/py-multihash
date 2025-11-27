@@ -41,4 +41,3 @@ for fragment_file in THIS_DIR.iterdir():
         raise Exception(f"Unexpected file: {fragment_file}")
     else:
         raise RuntimeError(f"Strange: arguments {sys.argv} were validated, but not found")
-
