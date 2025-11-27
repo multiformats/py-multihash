@@ -88,6 +88,7 @@ issue_format = "`#{issue} <https://github.com/multiformats/py-multihash/issues/{
 package = "multihash"
 title_format = "py-multihash v{version} ({project_date})"
 underlines = ["-", "~", "^"]
+ignore = ["validate_files.py", "README.md"]
 
 [[tool.towncrier.type]]
 directory = "breaking"
