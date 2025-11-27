@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from binascii import hexlify
 from collections import namedtuple
 from io import BytesIO
@@ -8,8 +7,7 @@ import varint
 
 import multihash.constants as constants
 
-
-Multihash = namedtuple('Multihash', 'code,name,length,digest')
+Multihash = namedtuple("Multihash", "code,name,length,digest")
 
 
 def to_hex_string(multihash):
@@ -22,7 +20,7 @@ def to_hex_string(multihash):
     :raises: `TypeError`, if the `multihash` has incorrect type
     """
     if not isinstance(multihash, bytes):
-        raise TypeError('multihash should be bytes, not {}'.format(type(multihash)))
+        raise TypeError(f"multihash should be bytes, not {type(multihash)}")
 
     return hexlify(multihash).decode()
 
@@ -37,7 +35,7 @@ def from_hex_string(multihash):
     :raises: `TypeError`, if the `multihash` has incorrect type
     """
     if not isinstance(multihash, str):
-        raise TypeError('multihash should be str, not {}'.format(type(multihash)))
+        raise TypeError(f"multihash should be str, not {type(multihash)}")
 
     return bytes.fromhex(multihash)
 
@@ -52,7 +50,7 @@ def to_b58_string(multihash):
     :raises: `TypeError`, if the `multihash` has incorrect type
     """
     if not isinstance(multihash, bytes):
-        raise TypeError('multihash should be bytes, not {}'.format(type(multihash)))
+        raise TypeError(f"multihash should be bytes, not {type(multihash)}")
 
     return base58.b58encode(multihash).decode()
 
@@ -67,7 +65,7 @@ def from_b58_string(multihash):
     :raises: `TypeError`, if the `multihash` has incorrect type
     """
     if not isinstance(multihash, str):
-        raise TypeError('multihash should be str, not {}'.format(type(multihash)))
+        raise TypeError(f"multihash should be str, not {type(multihash)}")
 
     return base58.b58decode(multihash)
 
@@ -102,14 +100,14 @@ def coerce_code(hash_fn):
         try:
             return constants.HASH_CODES[hash_fn]
         except KeyError:
-            raise ValueError('Unsupported hash function {}'.format(hash_fn))
+            raise ValueError(f"Unsupported hash function {hash_fn}")
 
     elif isinstance(hash_fn, int):
         if hash_fn in constants.CODE_HASHES or is_app_code(hash_fn):
             return hash_fn
-        raise ValueError('Unsupported hash code {}'.format(hash_fn))
+        raise ValueError(f"Unsupported hash code {hash_fn}")
 
-    raise TypeError('hash code should be either an integer or a string')
+    raise TypeError("hash code should be either an integer or a string")
 
 
 def is_valid_code(code):
@@ -137,29 +135,29 @@ def decode(multihash):
     :raises ValueError: if the length is not same as the digest
     """
     if not isinstance(multihash, bytes):
-        raise TypeError('multihash should be bytes, not {}', type(multihash))
+        raise TypeError("multihash should be bytes, not {}", type(multihash))
 
     if len(multihash) < 3:
-        raise ValueError('multihash must be greater than 3 bytes.')
+        raise ValueError("multihash must be greater than 3 bytes.")
 
     buffer = BytesIO(multihash)
     try:
         code = varint.decode_stream(buffer)
     except TypeError:
-        raise ValueError('Invalid varint provided')
+        raise ValueError("Invalid varint provided")
 
     if not is_valid_code(code):
-        raise ValueError('Unsupported hash code {}'.format(code))
+        raise ValueError(f"Unsupported hash code {code}")
 
     try:
         length = varint.decode_stream(buffer)
     except TypeError:
-        raise ValueError('Invalid length provided')
+        raise ValueError("Invalid length provided")
 
     buf = buffer.read()
 
     if len(buf) != length:
-        raise ValueError('Inconsistent multihash length {} != {}'.format(len(buf), length))
+        raise ValueError(f"Inconsistent multihash length {len(buf)} != {length}")
 
     return Multihash(code=code, name=constants.CODE_HASHES.get(code, code), length=length, digest=buf)
 
@@ -179,13 +177,13 @@ def encode(digest, code, length=None):
     hash_code = coerce_code(code)
 
     if not isinstance(digest, bytes):
-        raise TypeError('digest must be a bytes object, not {}'.format(type(digest)))
+        raise TypeError(f"digest must be a bytes object, not {type(digest)}")
 
     if length is None:
         length = len(digest)
 
     elif length != len(digest):
-        raise ValueError('digest length should be equal to specified length')
+        raise ValueError("digest length should be equal to specified length")
 
     return varint.encode(hash_code) + varint.encode(length) + digest
 
@@ -217,4 +215,4 @@ def get_prefix(multihash):
     if is_valid(multihash):
         return multihash[:2]
 
-    raise ValueError('invalid multihash')
+    raise ValueError("invalid multihash")
