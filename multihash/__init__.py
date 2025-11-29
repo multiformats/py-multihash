@@ -4,10 +4,12 @@ __author__ = """Dhruv Baldawa"""
 __email__ = "dhruv@dhruvb.com"
 __version__ = "2.0.0"
 
+from .funcs import Func, FuncReg, IdentityHash
 from .multihash import (
     Multihash,
     coerce_code,
     decode,
+    digest,
     encode,
     from_b58_string,
     from_hex_string,
@@ -20,9 +22,13 @@ from .multihash import (
 )
 
 __all__ = [
+    "Func",
+    "FuncReg",
+    "IdentityHash",
     "Multihash",
     "coerce_code",
     "decode",
+    "digest",
     "encode",
     "from_b58_string",
     "from_hex_string",

@@ -6,8 +6,154 @@ import base58
 import varint
 
 import multihash.constants as constants
+from multihash.funcs import Func, FuncReg, _is_app_specific_func
 
-Multihash = namedtuple("Multihash", "code,name,length,digest")
+
+class Multihash(namedtuple("Multihash", "code,name,length,digest")):
+    """A named tuple representing a multihash function and digest.
+
+    This extends the base namedtuple with additional methods for encoding,
+    verification, and compatibility with both py-multihash and pymultihash APIs.
+    """
+
+    __slots__ = ()
+
+    def __new__(cls, code=None, name=None, length=None, digest=None, func=None):
+        """Create a new Multihash instance.
+
+        Supports both py-multihash style (code, name, length, digest) and
+        pymultihash style (func, digest) constructors.
+
+        Args:
+            code: The hash function code (int)
+            name: The hash function name (str)
+            length: The digest length (int)
+            digest: The raw digest bytes
+            func: Alternative way to specify the hash function (Func enum, str, or int)
+        """
+        # Handle pymultihash-style construction: Multihash(func, digest)
+        if func is not None or (
+            code is not None
+            and name is None
+            and length is None
+            and digest is None
+            and isinstance(code, (Func, str, int))
+        ):
+            # pymultihash style: Multihash(func, digest) or Multihash(code, digest_bytes)
+            if func is not None:
+                _func = func
+                _digest = digest if digest is not None else (name if isinstance(name, bytes) else b"")
+            else:
+                _func = code
+                _digest = name if isinstance(name, bytes) else b""
+
+            # Resolve the function
+            try:
+                resolved_func = FuncReg.get(_func)
+            except KeyError:
+                if _is_app_specific_func(_func):
+                    resolved_func = int(_func)
+                else:
+                    raise
+
+            # Get code and name
+            if isinstance(resolved_func, Func):
+                _code = resolved_func.value
+                _name = constants.CODE_HASHES.get(_code, resolved_func.name)
+            else:
+                _code = resolved_func
+                _name = constants.CODE_HASHES.get(_code, _code)
+
+            _length = len(_digest)
+            return super().__new__(cls, _code, _name, _length, _digest)
+
+        # Standard py-multihash style construction
+        return super().__new__(cls, code, name, length, digest)
+
+    @property
+    def func(self):
+        """Return the hash function as a Func enum if possible, otherwise the code."""
+        try:
+            return Func(self.code)
+        except ValueError:
+            return self.code
+
+    def encode(self, encoding=None):
+        """Encode into a multihash-encoded digest.
+
+        Args:
+            encoding: Optional encoding name (e.g., 'base64', 'hex', 'base58')
+
+        Returns:
+            bytes: The encoded multihash
+        """
+        mhash = varint.encode(self.code) + varint.encode(self.length) + self.digest
+
+        if encoding:
+            if encoding == "base64":
+                import base64
+
+                mhash = base64.b64encode(mhash)
+            elif encoding == "hex":
+                mhash = hexlify(mhash)
+            elif encoding == "base58":
+                mhash = base58.b58encode(mhash)
+            else:
+                raise ValueError(f"Unsupported encoding: {encoding}")
+
+        return mhash
+
+    def verify(self, data):
+        """Does the given `data` hash to the digest in this multihash?
+
+        Args:
+            data: The data to verify
+
+        Returns:
+            bool: True if the data matches the digest
+        """
+        computed = _do_digest(data, self.func)
+        return computed == self.digest
+
+    def __str__(self):
+        """Return a compact string representation of the multihash."""
+        import base64
+
+        func_name = self.name if isinstance(self.name, str) else hex(self.code)
+        return f"Multihash({func_name}, b64:{base64.b64encode(self.digest).decode()})"
+
+
+def _do_digest(data, func):
+    """Return the binary digest of `data` with the given `func`."""
+    func = FuncReg.get(func)
+    hash_obj = FuncReg.hash_from_func(func)
+    if not hash_obj:
+        raise ValueError("no available hash function for hash", func)
+    hash_obj.update(data)
+    return bytes(hash_obj.digest())
+
+
+def digest(data, func):
+    """Hash the given `data` into a new `Multihash`.
+
+    The given hash function `func` is used to perform the hashing.  It must be
+    a registered hash function (see `FuncReg`).
+
+    Args:
+        data: The data to hash (bytes)
+        func: The hash function to use (Func enum, str, or int)
+
+    Returns:
+        Multihash: A new Multihash instance with the computed digest
+
+    Example:
+        >>> data = b'foo'
+        >>> mh = digest(data, Func.sha1)
+        >>> mh.encode('base64')
+        b'ERQL7se16j8P28ldDdR/PFvCddqKMw=='
+    """
+    digest_bytes = _do_digest(data, func)
+    return Multihash(func=func, digest=digest_bytes)
 
 
 def to_hex_string(multihash):
