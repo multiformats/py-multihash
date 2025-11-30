@@ -143,7 +143,25 @@ class ShakeHash:
 
 
 class FuncReg(metaclass=_FuncRegMeta):
-    """Registry of supported hash functions."""
+    """Registry of supported hash functions.
+
+    The FuncReg class maintains a registry of hash functions that can be:
+    - Retrieved by code, name, or hashlib object
+    - Extended with custom app-specific functions (codes 0x01-0x0F)
+    - Used to create hashlib-compatible hash objects
+
+    Standard functions are pre-registered. App-specific functions can be
+    registered/unregistered at runtime.
+
+    Example:
+        Register an app-specific hash function:
+        >>> FuncReg.register(0x05, "my-custom-hash", "myhash", lambda: MyHash())
+        >>> func = FuncReg.get("my-custom-hash")
+        >>> hash_obj = FuncReg.hash_from_func(func)
+
+        Unregister an app-specific function:
+        >>> FuncReg.unregister(0x05)
+    """
 
     _hash = namedtuple("_hash", "name new")
 
@@ -191,8 +209,10 @@ class FuncReg(metaclass=_FuncRegMeta):
         for func, hash_name, hash_new in cls._optional_func_data:
             if hash_new is not None:
                 try:
-                    # Test that the function is actually available by creating an instance
-                    # We don't use the result, just verify it can be instantiated
+                    # Test that the function is actually available by creating an instance.
+                    # We don't use the result, just verify it can be instantiated.
+                    # The unused variable is intentional - we only care about the side effect
+                    # of successful instantiation, not the hash object itself.
                     _ = hash_new()
                     cls._do_register(func, func.name, hash_name, hash_new)
                 except (AttributeError, ValueError, TypeError):
@@ -215,7 +235,12 @@ class FuncReg(metaclass=_FuncRegMeta):
 
     @classmethod
     def _do_register(cls, code: int, name: str, hash_name: str | None = None, hash_new=None) -> None:
-        """Add hash function data to the registry without checks."""
+        """Add hash function data to the registry without checks.
+
+        This method registers the function name in both hyphen and underscore
+        variants (e.g., "sha2-256" and "sha2_256") to provide flexibility
+        for users who may use either naming convention.
+        """
         cls._func_from_name[name.replace("-", "_")] = code
         cls._func_from_name[name.replace("_", "-")] = code
         if hash_name:

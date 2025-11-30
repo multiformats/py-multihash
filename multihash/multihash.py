@@ -1,3 +1,5 @@
+import base64
+import json
 from binascii import hexlify
 from collections import namedtuple
 from collections.abc import Iterator
@@ -113,8 +115,6 @@ class Multihash(namedtuple("Multihash", "code,name,length,digest")):
 
         if encoding:
             if encoding == "base64":
-                import base64
-
                 mhash = base64.b64encode(mhash)
             elif encoding == "hex":
                 mhash = hexlify(mhash)
@@ -140,8 +140,6 @@ class Multihash(namedtuple("Multihash", "code,name,length,digest")):
 
     def __str__(self):
         """Return a compact string representation of the multihash."""
-        import base64
-
         func_name = self.name if isinstance(self.name, str) else hex(self.code)
         return f"Multihash({func_name}, b64:{base64.b64encode(self.digest).decode()})"
 
@@ -161,9 +159,6 @@ class Multihash(namedtuple("Multihash", "code,name,length,digest")):
             >>> mh.to_json(verbose=True)
             '{"code": 18, "name": "sha2-256", "length": 32, "digest": "base64:..."}'
         """
-        import base64
-        import json
-
         data = {
             "code": self.code,
             "length": self.length,
@@ -391,9 +386,6 @@ def from_json(json_str: str) -> Multihash:
         >>> json_str_verbose = '{"code": 18, "name": "sha2-256", "length": 32, "digest": "base64:..."}'
         >>> mh = from_json(json_str_verbose)
     """
-    import base64
-    import json
-
     try:
         data = json.loads(json_str)
     except json.JSONDecodeError as e:
@@ -709,8 +701,17 @@ def get_prefix(multihash):
 def sum(data: bytes, code: Func | str | int, length: int | None = None) -> Multihash:
     """Compute multihash for data (Go-compatible API).
 
-    This is similar to digest() but follows Go's multihash.Sum() API convention
-    where length=-1 means full digest.
+    This function provides a Go-compatible API for computing multihashes.
+    It is a thin wrapper around digest() that follows Go's multihash.Sum()
+    convention where length=-1 means full digest.
+
+    Use this function when:
+    - Migrating from Go multihash implementations
+    - You prefer the Go-style API naming
+
+    Use digest() when:
+    - You prefer Pythonic naming conventions
+    - You want the more descriptive function name
 
     Args:
         data: Input data to hash (bytes)
@@ -747,11 +748,18 @@ def sum_stream(stream: BinaryIO, code: Func | str | int, length: int | None = No
         TruncationError: If truncation length is invalid
 
     Example:
+        Using with a file handle:
         >>> with open("large_file.bin", "rb") as f:
         ...     mh = sum_stream(f, "sha2-256")
+
+        Using with BytesIO:
         >>> from io import BytesIO
         >>> data = BytesIO(b"streaming data")
         >>> mh = sum_stream(data, Func.sha2_256)
+
+        Using with truncation:
+        >>> with open("file.bin", "rb") as f:
+        ...     mh = sum_stream(f, Func.sha2_256, length=16)
     """
     func = FuncReg.get(code)
     is_shake = func in (Func.shake_128, Func.shake_256)
