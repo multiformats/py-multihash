@@ -8,9 +8,12 @@ import pytest
 from multihash import (
     Func,
     HashComputationError,
+    MultihashSet,
     ShakeHash,
     TruncationError,
+    decode,
     digest,
+    from_json,
     sum,
     sum_stream,
 )
@@ -271,3 +274,390 @@ class TestDigestWithTruncationTestCase:
         mh1 = digest(b"hello", Func.sha2_256)
         mh2 = digest(b"hello", Func.sha2_256, length=None)
         assert mh1.digest == mh2.digest
+
+
+class TestIntegrationTestCase:
+    """Integration tests for feature combinations."""
+
+    def test_streaming_with_truncation(self):
+        """Test sum_stream() with truncation parameter."""
+        data = b"test data for streaming with truncation"
+        stream = BytesIO(data)
+        mh_stream = sum_stream(stream, Func.sha2_256, length=16)
+
+        # Verify it matches sum() with same truncation
+        mh_sum = sum(data, Func.sha2_256, length=16)
+        assert mh_stream.digest == mh_sum.digest
+        assert len(mh_stream.digest) == 16
+
+    def test_shake_with_streaming(self):
+        """Test sum_stream() with SHAKE-128 and SHAKE-256."""
+        data = b"streaming test data"
+
+        # SHAKE-128 with custom length
+        stream1 = BytesIO(data)
+        mh1 = sum_stream(stream1, Func.shake_128, length=48)
+        assert len(mh1.digest) == 48
+
+        # SHAKE-256 with custom length
+        stream2 = BytesIO(data)
+        mh2 = sum_stream(stream2, Func.shake_256, length=32)
+        assert len(mh2.digest) == 32
+
+        # Verify they match sum() with same parameters
+        mh1_sum = sum(data, Func.shake_128, length=48)
+        mh2_sum = sum(data, Func.shake_256, length=32)
+        assert mh1.digest == mh1_sum.digest
+        assert mh2.digest == mh2_sum.digest
+
+    def test_shake_produces_correct_length(self):
+        """Test that SHAKE functions produce correct length without additional truncation."""
+        data = b"test"
+        mh = sum(data, Func.shake_128, length=40)
+        assert len(mh.digest) == 40
+        # Verify it's actually SHAKE-128 output
+        expected = hashlib.shake_128(data).digest(40)
+        assert mh.digest == expected
+
+    def test_truncation_error_in_streaming(self):
+        """Test that TruncationError is raised appropriately in streaming context."""
+        data = b"test"
+        stream = BytesIO(data)
+        with pytest.raises(TruncationError, match="exceeds digest size"):
+            sum_stream(stream, Func.sha2_256, length=100)
+
+    def test_multihash_encode_with_truncation(self):
+        """Test that truncated multihashes encode/decode correctly."""
+        mh = sum(b"hello", Func.sha2_256, length=16)
+        encoded = mh.encode()
+        decoded = decode(encoded)
+        assert decoded.digest == mh.digest
+        assert decoded.length == 16
+        assert decoded.code == mh.code
+
+    def test_verify_with_truncated_multihash(self):
+        """Test that verify() works correctly with truncated multihashes."""
+        data = b"test data"
+        mh = sum(data, Func.sha2_256, length=16)
+        assert mh.verify(data) is True
+        assert mh.verify(b"wrong data") is False
+
+    def test_sum_stream_large_data_with_truncation(self):
+        """Test streaming with truncation on larger data."""
+        data = b"x" * 20000
+        stream = BytesIO(data)
+        mh = sum_stream(stream, Func.sha2_256, length=20)
+        assert len(mh.digest) == 20
+        # Verify it matches sum() with same truncation
+        mh_sum = sum(data, Func.sha2_256, length=20)
+        assert mh.digest == mh_sum.digest
+
+
+class TestMultihashSetTestCase:
+    """Tests for MultihashSet collection type."""
+
+    def test_multihash_set_creation(self):
+        """Test creating empty and from iterable MultihashSet."""
+        # Empty set
+        mh_set = MultihashSet()
+        assert len(mh_set) == 0
+
+        # From iterable
+        mh1 = sum(b"file1", Func.sha2_256)
+        mh2 = sum(b"file2", Func.sha2_256)
+        mh_set = MultihashSet([mh1, mh2])
+        assert len(mh_set) == 2
+
+    def test_multihash_set_add(self):
+        """Test adding items to MultihashSet."""
+        mh_set = MultihashSet()
+        mh1 = sum(b"file1", Func.sha2_256)
+        mh2 = sum(b"file2", Func.sha2_256)
+
+        # Go-style API
+        mh_set.Add(mh1)
+        assert len(mh_set) == 1
+
+        # Python-style API
+        mh_set.add(mh2)
+        assert len(mh_set) == 2
+
+    def test_multihash_set_remove(self):
+        """Test removing items from MultihashSet."""
+        mh1 = sum(b"file1", Func.sha2_256)
+        mh2 = sum(b"file2", Func.sha2_256)
+        mh_set = MultihashSet([mh1, mh2])
+
+        # Go-style remove
+        mh_set.Remove(mh1)
+        assert len(mh_set) == 1
+        assert mh1 not in mh_set
+
+        # Python-style remove
+        mh_set.remove(mh2)
+        assert len(mh_set) == 0
+
+        # discard doesn't raise KeyError
+        mh_set.discard(mh1)  # Should not raise
+
+    def test_multihash_set_has(self):
+        """Test checking membership in MultihashSet."""
+        mh1 = sum(b"file1", Func.sha2_256)
+        mh2 = sum(b"file2", Func.sha2_256)
+        mh_set = MultihashSet([mh1])
+
+        # Go-style API
+        assert mh_set.Has(mh1) is True
+        assert mh_set.Has(mh2) is False
+
+        # Python-style API
+        assert mh1 in mh_set
+        assert mh2 not in mh_set
+
+    def test_multihash_set_all(self):
+        """Test getting all items from MultihashSet."""
+        mh1 = sum(b"file1", Func.sha2_256)
+        mh2 = sum(b"file2", Func.sha2_256)
+        mh_set = MultihashSet([mh1, mh2])
+
+        all_items = mh_set.All()
+        assert len(all_items) == 2
+        assert mh1 in all_items
+        assert mh2 in all_items
+
+    def test_multihash_set_len(self):
+        """Test length operations on MultihashSet."""
+        mh_set = MultihashSet()
+        assert len(mh_set) == 0
+
+        mh1 = sum(b"file1", Func.sha2_256)
+        mh_set.add(mh1)
+        assert len(mh_set) == 1
+
+    def test_multihash_set_iteration(self):
+        """Test iteration over MultihashSet."""
+        mh1 = sum(b"file1", Func.sha2_256)
+        mh2 = sum(b"file2", Func.sha2_256)
+        mh_set = MultihashSet([mh1, mh2])
+
+        items = list(mh_set)
+        assert len(items) == 2
+        assert mh1 in items
+        assert mh2 in items
+
+    def test_multihash_set_operations(self):
+        """Test set operations (union, intersection, difference)."""
+        mh1 = sum(b"file1", Func.sha2_256)
+        mh2 = sum(b"file2", Func.sha2_256)
+        mh3 = sum(b"file3", Func.sha2_256)
+
+        set1 = MultihashSet([mh1, mh2])
+        set2 = MultihashSet([mh2, mh3])
+
+        # Union
+        union_set = set1.union(set2)
+        assert len(union_set) == 3
+        assert mh1 in union_set
+        assert mh2 in union_set
+        assert mh3 in union_set
+
+        # Intersection
+        intersection_set = set1.intersection(set2)
+        assert len(intersection_set) == 1
+        assert mh2 in intersection_set
+
+        # Difference
+        difference_set = set1.difference(set2)
+        assert len(difference_set) == 1
+        assert mh1 in difference_set
+        assert mh2 not in difference_set
+
+        # Symmetric difference
+        symdiff_set = set1.symmetric_difference(set2)
+        assert len(symdiff_set) == 2
+        assert mh1 in symdiff_set
+        assert mh3 in symdiff_set
+        assert mh2 not in symdiff_set
+
+    def test_multihash_set_duplicates(self):
+        """Test that duplicates are handled correctly."""
+        mh1 = sum(b"file1", Func.sha2_256)
+        mh_set = MultihashSet([mh1, mh1])  # Same hash twice
+        assert len(mh_set) == 1  # Should only have one
+
+    def test_multihash_set_type_error(self):
+        """Test that non-Multihash objects are rejected."""
+        mh_set = MultihashSet()
+        with pytest.raises(TypeError, match="MultihashSet can only contain Multihash objects"):
+            mh_set.add("not a multihash")
+
+        with pytest.raises(TypeError, match="MultihashSet can only contain Multihash objects"):
+            MultihashSet(["not", "multihash", "objects"])
+
+    def test_multihash_set_go_api(self):
+        """Test Go-style API (Add, Remove, Has, All)."""
+        mh_set = MultihashSet()
+        mh1 = sum(b"file1", Func.sha2_256)
+
+        # Add
+        mh_set.Add(mh1)
+        assert mh_set.Has(mh1) is True
+
+        # All
+        all_items = mh_set.All()
+        assert len(all_items) == 1
+        assert all_items[0] == mh1
+
+        # Remove
+        mh_set.Remove(mh1)
+        assert mh_set.Has(mh1) is False
+
+    def test_multihash_set_clear(self):
+        """Test clearing MultihashSet."""
+        mh1 = sum(b"file1", Func.sha2_256)
+        mh2 = sum(b"file2", Func.sha2_256)
+        mh_set = MultihashSet([mh1, mh2])
+
+        mh_set.clear()
+        assert len(mh_set) == 0
+        assert mh1 not in mh_set
+        assert mh2 not in mh_set
+
+
+class TestJsonSerializationTestCase:
+    """Tests for JSON serialization support."""
+
+    def test_to_json_compact(self):
+        """Test compact format JSON serialization."""
+        mh = sum(b"hello", Func.sha2_256)
+        json_str = mh.to_json()
+
+        # Should be valid JSON
+        import json
+
+        data = json.loads(json_str)
+        assert "code" in data
+        assert "length" in data
+        assert "digest" in data
+        assert "name" not in data  # Compact format doesn't include name
+
+    def test_to_json_verbose(self):
+        """Test verbose format JSON serialization."""
+        mh = sum(b"hello", Func.sha2_256)
+        json_str = mh.to_json(verbose=True)
+
+        # Should be valid JSON with name
+        import json
+
+        data = json.loads(json_str)
+        assert "code" in data
+        assert "length" in data
+        assert "digest" in data
+        assert "name" in data  # Verbose format includes name
+        assert data["name"] == "sha2-256"
+
+    def test_from_json_compact(self):
+        """Test deserializing compact format JSON."""
+        mh = sum(b"hello", Func.sha2_256)
+        json_str = mh.to_json()
+
+        # Deserialize
+        mh_restored = from_json(json_str)
+        assert mh_restored.code == mh.code
+        assert mh_restored.length == mh.length
+        assert mh_restored.digest == mh.digest
+
+    def test_from_json_verbose(self):
+        """Test deserializing verbose format JSON."""
+        mh = sum(b"hello", Func.sha2_256)
+        json_str = mh.to_json(verbose=True)
+
+        # Deserialize
+        mh_restored = from_json(json_str)
+        assert mh_restored.code == mh.code
+        assert mh_restored.length == mh.length
+        assert mh_restored.digest == mh.digest
+        assert mh_restored.name == mh.name
+
+    def test_json_roundtrip(self):
+        """Test round-trip JSON serialization."""
+        mh = sum(b"hello world", Func.sha2_256)
+
+        # Round-trip through compact format
+        json_str = mh.to_json()
+        mh_restored = from_json(json_str)
+        assert mh_restored == mh
+
+        # Round-trip through verbose format
+        json_str = mh.to_json(verbose=True)
+        mh_restored = from_json(json_str)
+        assert mh_restored == mh
+
+    def test_json_with_different_hashes(self):
+        """Test JSON serialization with different hash functions."""
+        test_cases = [
+            (b"test1", Func.sha1),
+            (b"test2", Func.sha2_256),
+            (b"test3", Func.sha2_512),
+        ]
+
+        for data, func in test_cases:
+            mh = sum(data, func)
+            json_str = mh.to_json()
+            mh_restored = from_json(json_str)
+            assert mh_restored == mh
+
+    def test_json_invalid_input(self):
+        """Test handling of invalid JSON input."""
+        with pytest.raises(ValueError, match="Invalid JSON string"):
+            from_json("not valid json")
+
+        with pytest.raises(ValueError, match="Invalid JSON string"):
+            from_json('{"invalid": json}')
+
+    def test_json_missing_fields(self):
+        """Test handling of missing required fields."""
+        import json
+
+        # Missing code
+        with pytest.raises(ValueError, match="Missing required fields"):
+            from_json(json.dumps({"length": 32, "digest": "dGVzdA=="}))
+
+        # Missing length
+        with pytest.raises(ValueError, match="Missing required fields"):
+            from_json(json.dumps({"code": 18, "digest": "dGVzdA=="}))
+
+        # Missing digest
+        with pytest.raises(ValueError, match="Missing required fields"):
+            from_json(json.dumps({"code": 18, "length": 32}))
+
+    def test_json_base64_encoding(self):
+        """Test base64 encoding/decoding of digest."""
+        mh = sum(b"test data", Func.sha2_256)
+        json_str = mh.to_json()
+
+        import base64
+        import json
+
+        data = json.loads(json_str)
+        digest_str = data["digest"]
+
+        # Decode and verify
+        decoded_digest = base64.b64decode(digest_str)
+        assert decoded_digest == mh.digest
+
+    def test_json_length_mismatch(self):
+        """Test handling of length mismatch."""
+        import base64
+        import json
+
+        # Create JSON with incorrect length
+        digest_bytes = b"test"
+        json_data = {
+            "code": 18,
+            "length": 100,  # Wrong length
+            "digest": base64.b64encode(digest_bytes).decode("utf-8"),
+        }
+
+        with pytest.raises(ValueError, match="Length mismatch"):
+            from_json(json.dumps(json_data))

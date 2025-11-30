@@ -127,3 +127,70 @@ You can verify data against a multihash::
     # Verify the data
     assert mh.verify(b"hello") is True
     assert mh.verify(b"world") is False
+
+MultihashSet Collection
+========================
+
+Manage collections of unique multihash values using ``MultihashSet``::
+
+    from multihash import MultihashSet, sum, Func
+
+    # Create a new set
+    mh_set = MultihashSet()
+
+    # Add multihashes (Go-style API)
+    mh1 = sum(b"file1", Func.sha2_256)
+    mh2 = sum(b"file2", Func.sha2_256)
+    mh_set.Add(mh1)
+    mh_set.Add(mh2)
+
+    # Or use Python-style API
+    mh_set.add(mh1)
+
+    # Check membership
+    assert mh_set.Has(mh1) is True  # Go-style
+    assert mh1 in mh_set  # Python-style
+
+    # Get all items
+    all_hashes = mh_set.All()
+
+    # Remove items
+    mh_set.Remove(mh1)  # Raises KeyError if not present
+    mh_set.discard(mh2)  # Doesn't raise if not present
+
+    # Set operations
+    set1 = MultihashSet([mh1, mh2])
+    set2 = MultihashSet([mh2, mh3])
+    union = set1.union(set2)
+    intersection = set1.intersection(set2)
+    difference = set1.difference(set2)
+
+    # Iterate over the set
+    for mh in mh_set:
+        print(mh)
+
+JSON Serialization
+===================
+
+Convert multihash objects to and from JSON format::
+
+    from multihash import sum, Func, from_json
+
+    # Create a multihash
+    mh = sum(b"hello world", Func.sha2_256)
+
+    # Serialize to JSON (compact format)
+    json_str = mh.to_json()
+    # {"code": 18, "length": 32, "digest": "base64:..."}
+
+    # Serialize to JSON (verbose format with name)
+    json_str = mh.to_json(verbose=True)
+    # {"code": 18, "name": "sha2-256", "length": 32, "digest": "base64:..."}
+
+    # Deserialize from JSON
+    mh_restored = from_json(json_str)
+    assert mh_restored == mh
+
+    # Works with both compact and verbose formats
+    mh1 = from_json('{"code": 18, "length": 32, "digest": "..."}')
+    mh2 = from_json('{"code": 18, "name": "sha2-256", "length": 32, "digest": "..."}')

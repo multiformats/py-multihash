@@ -1,5 +1,6 @@
 from binascii import hexlify
 from collections import namedtuple
+from collections.abc import Iterator
 from io import BytesIO
 from typing import BinaryIO
 
@@ -12,6 +13,22 @@ from multihash.exceptions import (
     TruncationError,
 )
 from multihash.funcs import Func, FuncReg, _is_app_specific_func
+
+
+def _resolve_shake_length(func: Func | int, length: int | None) -> int:
+    """Resolve SHAKE hash output length.
+
+    Args:
+        func: SHAKE function (shake_128 or shake_256)
+        length: Requested length (None or -1 for default)
+
+    Returns:
+        Resolved length in bytes
+    """
+    if length is None or length == -1:
+        # Default length for SHAKE-128 is 32, SHAKE-256 is 64
+        return 32 if func == Func.shake_128 else 64
+    return length
 
 
 class Multihash(namedtuple("Multihash", "code,name,length,digest")):
@@ -128,6 +145,289 @@ class Multihash(namedtuple("Multihash", "code,name,length,digest")):
         func_name = self.name if isinstance(self.name, str) else hex(self.code)
         return f"Multihash({func_name}, b64:{base64.b64encode(self.digest).decode()})"
 
+    def to_json(self, verbose: bool = False) -> str:
+        """Convert Multihash to JSON string.
+
+        Args:
+            verbose: If True, include 'name' field in output
+
+        Returns:
+            JSON string representation
+
+        Example:
+            >>> mh = Multihash(func=Func.sha2_256, digest=b'...')
+            >>> mh.to_json()
+            '{"code": 18, "length": 32, "digest": "base64:..."}'
+            >>> mh.to_json(verbose=True)
+            '{"code": 18, "name": "sha2-256", "length": 32, "digest": "base64:..."}'
+        """
+        import base64
+        import json
+
+        data = {
+            "code": self.code,
+            "length": self.length,
+            "digest": base64.b64encode(self.digest).decode("utf-8"),
+        }
+        if verbose:
+            data["name"] = self.name if isinstance(self.name, str) else hex(self.code)
+
+        return json.dumps(data)
+
+
+class MultihashSet:
+    """A specialized collection for managing unique Multihash values.
+
+    This class provides both Go-compatible API (Add, Remove, Has, All) and
+    Pythonic set operations. It ensures type safety by only accepting Multihash
+    objects.
+
+    Example:
+        >>> from multihash import MultihashSet, sum, Func
+        >>> mh_set = MultihashSet()
+        >>> mh1 = sum(b"file1", Func.sha2_256)
+        >>> mh_set.Add(mh1)  # Go-style
+        >>> mh_set.add(mh2)   # Python-style
+        >>> mh_set.Has(mh1)   # True
+        >>> len(mh_set)       # 2
+    """
+
+    def __init__(self, iterable=None):
+        """Initialize a new MultihashSet.
+
+        Args:
+            iterable: Optional iterable of Multihash objects to initialize the set
+
+        Raises:
+            TypeError: If iterable contains non-Multihash objects
+        """
+        self._set: set[Multihash] = set()
+        if iterable is not None:
+            for item in iterable:
+                if not isinstance(item, Multihash):
+                    raise TypeError(f"MultihashSet can only contain Multihash objects, got {type(item)}")
+                self._set.add(item)
+
+    def Add(self, mh: Multihash) -> None:
+        """Add a Multihash to the set (Go-style API).
+
+        Args:
+            mh: Multihash object to add
+
+        Raises:
+            TypeError: If mh is not a Multihash object
+        """
+        if not isinstance(mh, Multihash):
+            raise TypeError(f"MultihashSet can only contain Multihash objects, got {type(mh)}")
+        self._set.add(mh)
+
+    def add(self, mh: Multihash) -> None:
+        """Add a Multihash to the set (Python-style API).
+
+        Args:
+            mh: Multihash object to add
+
+        Raises:
+            TypeError: If mh is not a Multihash object
+        """
+        self.Add(mh)
+
+    def Remove(self, mh: Multihash) -> None:
+        """Remove a Multihash from the set (Go-style API).
+
+        Args:
+            mh: Multihash object to remove
+
+        Raises:
+            KeyError: If mh is not in the set
+            TypeError: If mh is not a Multihash object
+        """
+        if not isinstance(mh, Multihash):
+            raise TypeError(f"MultihashSet can only contain Multihash objects, got {type(mh)}")
+        self._set.remove(mh)
+
+    def remove(self, mh: Multihash) -> None:
+        """Remove a Multihash from the set (Python-style API).
+
+        Args:
+            mh: Multihash object to remove
+
+        Raises:
+            KeyError: If mh is not in the set
+            TypeError: If mh is not a Multihash object
+        """
+        self.Remove(mh)
+
+    def discard(self, mh: Multihash) -> None:
+        """Remove a Multihash from the set if present (does not raise KeyError).
+
+        Args:
+            mh: Multihash object to remove
+        """
+        if isinstance(mh, Multihash):
+            self._set.discard(mh)
+
+    def Has(self, mh: Multihash) -> bool:
+        """Check if a Multihash is in the set (Go-style API).
+
+        Args:
+            mh: Multihash object to check
+
+        Returns:
+            True if mh is in the set, False otherwise
+        """
+        return mh in self._set
+
+    def __contains__(self, mh: Multihash) -> bool:
+        """Check if a Multihash is in the set (Python-style API).
+
+        Args:
+            mh: Multihash object to check
+
+        Returns:
+            True if mh is in the set, False otherwise
+        """
+        return self.Has(mh)
+
+    def All(self) -> list[Multihash]:
+        """Return all Multihash objects in the set (Go-style API).
+
+        Returns:
+            List of all Multihash objects in the set
+        """
+        return list(self._set)
+
+    def __len__(self) -> int:
+        """Return the number of Multihash objects in the set.
+
+        Returns:
+            Number of items in the set
+        """
+        return len(self._set)
+
+    def __iter__(self) -> Iterator[Multihash]:
+        """Return an iterator over the Multihash objects in the set.
+
+        Returns:
+            Iterator over Multihash objects
+        """
+        return iter(self._set)
+
+    def union(self, other: "MultihashSet") -> "MultihashSet":
+        """Return a new MultihashSet with elements from both sets.
+
+        Args:
+            other: Another MultihashSet to union with
+
+        Returns:
+            New MultihashSet containing elements from both sets
+        """
+        result = MultihashSet(self._set)
+        result._set.update(other._set)
+        return result
+
+    def intersection(self, other: "MultihashSet") -> "MultihashSet":
+        """Return a new MultihashSet with elements common to both sets.
+
+        Args:
+            other: Another MultihashSet to intersect with
+
+        Returns:
+            New MultihashSet containing common elements
+        """
+        return MultihashSet(self._set & other._set)
+
+    def difference(self, other: "MultihashSet") -> "MultihashSet":
+        """Return a new MultihashSet with elements in this set but not in other.
+
+        Args:
+            other: Another MultihashSet to difference with
+
+        Returns:
+            New MultihashSet containing elements only in this set
+        """
+        return MultihashSet(self._set - other._set)
+
+    def symmetric_difference(self, other: "MultihashSet") -> "MultihashSet":
+        """Return a new MultihashSet with elements in either set but not both.
+
+        Args:
+            other: Another MultihashSet to symmetric difference with
+
+        Returns:
+            New MultihashSet containing elements in either set but not both
+        """
+        return MultihashSet(self._set ^ other._set)
+
+    def clear(self) -> None:
+        """Remove all Multihash objects from the set."""
+        self._set.clear()
+
+    def __repr__(self) -> str:
+        """Return a string representation of the MultihashSet.
+
+        Returns:
+            String representation showing the number of items
+        """
+        return f"MultihashSet({len(self._set)} items)"
+
+
+def from_json(json_str: str) -> Multihash:
+    """Create Multihash from JSON string.
+
+    Args:
+        json_str: JSON string representation of Multihash
+
+    Returns:
+        Multihash instance
+
+    Raises:
+        ValueError: If JSON is invalid or missing required fields
+        TypeError: If digest cannot be decoded
+
+    Example:
+        >>> json_str = '{"code": 18, "length": 32, "digest": "base64:..."}'
+        >>> mh = from_json(json_str)
+        >>> json_str_verbose = '{"code": 18, "name": "sha2-256", "length": 32, "digest": "base64:..."}'
+        >>> mh = from_json(json_str_verbose)
+    """
+    import base64
+    import json
+
+    try:
+        data = json.loads(json_str)
+    except json.JSONDecodeError as e:
+        raise ValueError(f"Invalid JSON string: {e}") from e
+
+    # Validate required fields
+    required_fields = ["code", "length", "digest"]
+    missing_fields = [field for field in required_fields if field not in data]
+    if missing_fields:
+        raise ValueError(f"Missing required fields: {missing_fields}")
+
+    # Extract and validate fields
+    code = data["code"]
+    length = data["length"]
+    digest_str = data["digest"]
+
+    # Decode base64 digest
+    try:
+        digest_bytes = base64.b64decode(digest_str)
+    except Exception as e:
+        raise TypeError(f"Failed to decode base64 digest: {e}") from e
+
+    # Validate length matches
+    if length != len(digest_bytes):
+        raise ValueError(f"Length mismatch: expected {length}, got {len(digest_bytes)}")
+
+    # Get name if provided, otherwise resolve from code
+    name = data.get("name")
+    if name is None:
+        # Resolve name from code
+        name = constants.CODE_HASHES.get(code, hex(code))
+
+    return Multihash(code=code, name=name, length=length, digest=digest_bytes)
+
 
 def _do_digest(data, func, length: int | None = None):
     """Return the binary digest of `data` with the given `func`.
@@ -149,11 +449,7 @@ def _do_digest(data, func, length: int | None = None):
 
     # Handle SHAKE functions which require length
     if is_shake:
-        if length is None or length == -1:
-            # Default length for SHAKE-128 is 32, SHAKE-256 is 64
-            shake_length = 32 if func == Func.shake_128 else 64
-        else:
-            shake_length = length
+        shake_length = _resolve_shake_length(func, length)
         hash_obj = FuncReg.hash_from_func(func, length=shake_length)
     else:
         hash_obj = FuncReg.hash_from_func(func)
@@ -454,19 +750,15 @@ def sum_stream(stream: BinaryIO, code: Func | str | int, length: int | None = No
         >>> with open("large_file.bin", "rb") as f:
         ...     mh = sum_stream(f, "sha2-256")
         >>> from io import BytesIO
-        ...     data = BytesIO(b"streaming data")
-        ...     mh = sum_stream(data, Func.sha2_256)
+        >>> data = BytesIO(b"streaming data")
+        >>> mh = sum_stream(data, Func.sha2_256)
     """
     func = FuncReg.get(code)
     is_shake = func in (Func.shake_128, Func.shake_256)
 
     # Handle SHAKE functions which require length
     if is_shake:
-        if length is None or length == -1:
-            # Default length for SHAKE-128 is 32, SHAKE-256 is 64
-            shake_length = 32 if func == Func.shake_128 else 64
-        else:
-            shake_length = length
+        shake_length = _resolve_shake_length(func, length)
         hash_obj = FuncReg.hash_from_func(func, length=shake_length)
     else:
         hash_obj = FuncReg.hash_from_func(func)

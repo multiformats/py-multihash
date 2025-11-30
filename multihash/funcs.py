@@ -1,6 +1,21 @@
 # py-multihash: Python implementation of the multihash specification
 
-"""Enumeration of standard multihash functions, and function registry"""
+"""Enumeration of standard multihash functions, and function registry.
+
+This module provides:
+- Func: IntEnum of supported hash functions
+- FuncReg: Registry for managing hash function implementations
+- IdentityHash: hashlib-compatible identity hash
+- ShakeHash: Wrapper for variable-length SHAKE hashes
+
+The FuncReg class maintains a registry of hash functions that can be:
+- Retrieved by code, name, or hashlib object
+- Extended with custom app-specific functions (codes 0x01-0x0F)
+- Used to create hashlib-compatible hash objects
+
+Standard functions are pre-registered. App-specific functions can be
+registered/unregistered at runtime.
+"""
 
 import hashlib
 from collections import namedtuple
@@ -45,8 +60,9 @@ class Func(IntEnum):
     blake2s_256 = HASH_CODES["blake2s-256"]
     md5 = HASH_CODES.get("md5", 0xD5)  # md5 not in constants, using standard code
     # Additional hash functions (if available in hashlib)
-    sha2_224 = HASH_CODES.get("sha2-224", 0x1013)  # May not be in constants
-    sha2_384 = HASH_CODES.get("sha2-384", 0x20)  # May not be in constants
+    # SHA2-224 (0x1013) and SHA2-384 (0x20) are official multihash codes per RFC 6234
+    sha2_224 = HASH_CODES["sha2-224"]  # Multihash code 0x1013 per spec
+    sha2_384 = HASH_CODES["sha2-384"]  # Multihash code 0x20 per spec
 
 
 class IdentityHash:
@@ -175,7 +191,8 @@ class FuncReg(metaclass=_FuncRegMeta):
         for func, hash_name, hash_new in cls._optional_func_data:
             if hash_new is not None:
                 try:
-                    # Test that the function is actually available
+                    # Test that the function is actually available by creating an instance
+                    # We don't use the result, just verify it can be instantiated
                     _ = hash_new()
                     cls._do_register(func, func.name, hash_name, hash_new)
                 except (AttributeError, ValueError, TypeError):
@@ -281,10 +298,15 @@ class FuncReg(metaclass=_FuncRegMeta):
 
         Args:
             func: Hash function code or Func enum
-            length: Optional length for variable-length hashes (SHAKE)
+            length: Optional length for SHAKE hashes. Required for SHAKE. Returns None if None for SHAKE.
 
         Returns:
             Hash object or None if not available
+
+        Note:
+            SHAKE functions (shake_128, shake_256) require a length parameter
+            to specify the output digest size. If length is None for SHAKE
+            functions, this method returns None.
         """
         new = cls._func_hash[func].new
         if new is None:
