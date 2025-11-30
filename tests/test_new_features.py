@@ -248,6 +248,7 @@ class TestFuncFromHashTestCase:
 
     def test_func_from_hash_unknown(self):
         """Test func_from_hash() with unknown hash object."""
+
         # Create a mock hash object with unknown name
         class UnknownHash:
             name = "unknown_hash_xyz"
