@@ -102,6 +102,14 @@ SHAKE-128 and SHAKE-256 support variable output lengths::
     mh = sum(b"hello", Func.shake_256)
     assert len(mh.digest) == 64
 
+Security Considerations
+========================
+
+.. warning::
+    MD5 and MD4 are included for backward compatibility but are cryptographically broken.
+    Do not use MD5 or MD4 for security-sensitive applications. Use SHA-256 or stronger
+    hash functions (e.g., SHA-512, SHA3-256, BLAKE2b) instead.
+
 Error Handling
 ==============
 

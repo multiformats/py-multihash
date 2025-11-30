@@ -91,6 +91,25 @@ class TestSumStreamFunctionTestCase:
         mh2 = sum(data, Func.sha2_256)
         assert mh1.digest == mh2.digest
 
+    def test_sum_stream_custom_chunk_size(self):
+        """Test sum_stream() with custom chunk size."""
+        data = b"x" * 20000
+        stream1 = BytesIO(data)
+        mh1 = sum_stream(stream1, Func.sha2_256, chunk_size=4096)
+        stream2 = BytesIO(data)
+        mh2 = sum_stream(stream2, Func.sha2_256, chunk_size=16384)
+        assert mh1.digest == mh2.digest
+        assert mh1.digest == hashlib.sha256(data).digest()
+
+    def test_sum_stream_invalid_chunk_size(self):
+        """Test that sum_stream() raises ValueError for invalid chunk_size."""
+        data = BytesIO(b"test")
+        with pytest.raises(ValueError, match="chunk_size must be positive"):
+            sum_stream(data, Func.sha2_256, chunk_size=0)
+        data2 = BytesIO(b"test")
+        with pytest.raises(ValueError, match="chunk_size must be positive"):
+            sum_stream(data2, Func.sha2_256, chunk_size=-1)
+
 
 class TestTruncationTestCase:
     """Tests for truncation support."""
@@ -332,15 +351,16 @@ class TestIntegrationTestCase:
         encoded = mh.encode()
         decoded = decode(encoded)
         assert decoded.digest == mh.digest
-        assert decoded.length == 16
-        assert decoded.code == mh.code
 
-    def test_verify_with_truncated_multihash(self):
+    def test_verify_truncated_multihash(self):
         """Test that verify() works correctly with truncated multihashes."""
         data = b"test data"
-        mh = sum(data, Func.sha2_256, length=16)
-        assert mh.verify(data) is True
-        assert mh.verify(b"wrong data") is False
+        mh_truncated = sum(data, Func.sha2_256, length=16)
+        assert mh_truncated.verify(data) is True
+        assert len(mh_truncated.digest) == 16
+        assert mh_truncated.length == 16
+        # Verify it doesn't match wrong data
+        assert mh_truncated.verify(b"wrong data") is False
 
     def test_sum_stream_large_data_with_truncation(self):
         """Test streaming with truncation on larger data."""

@@ -58,7 +58,7 @@ class Func(IntEnum):
     blake2b_256 = HASH_CODES["blake2b-256"]
     blake2b_512 = HASH_CODES["blake2b-512"]
     blake2s_256 = HASH_CODES["blake2s-256"]
-    md5 = HASH_CODES.get("md5", 0xD5)  # md5 not in constants, using standard code
+    md5 = HASH_CODES["md5"]
     # Additional hash functions (if available in hashlib)
     # SHA2-224 (0x1013) and SHA2-384 (0x20) are official multihash codes per RFC 6234
     sha2_224 = HASH_CODES["sha2-224"]  # Multihash code 0x1013 per spec

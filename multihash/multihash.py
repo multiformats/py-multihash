@@ -1,4 +1,5 @@
 import base64
+import binascii
 import json
 from binascii import hexlify
 from collections import namedtuple
@@ -128,11 +129,20 @@ class Multihash(namedtuple("Multihash", "code,name,length,digest")):
     def verify(self, data):
         """Does the given `data` hash to the digest in this multihash?
 
+        This method uses `self.length` (which may be truncated) for verification
+        to ensure it matches the original multihash exactly. For truncated multihashes,
+        verification uses the truncated length, not the full digest length.
+
         Args:
             data: The data to verify
 
         Returns:
             bool: True if the data matches the digest
+
+        Example:
+            >>> mh = sum(b"hello", Func.sha2_256, length=16)  # Truncated to 16 bytes
+            >>> mh.verify(b"hello")  # Verifies against 16-byte truncated digest
+            True
         """
         # Use the stored length for verification to match the original digest
         computed = _do_digest(data, self.func, length=self.length)
@@ -141,7 +151,10 @@ class Multihash(namedtuple("Multihash", "code,name,length,digest")):
     def __str__(self):
         """Return a compact string representation of the multihash."""
         func_name = self.name if isinstance(self.name, str) else hex(self.code)
-        return f"Multihash({func_name}, b64:{base64.b64encode(self.digest).decode()})"
+        b64_digest = base64.b64encode(self.digest).decode()
+        if len(self.digest) > 64:
+            b64_digest = b64_digest[:32] + "..."
+        return f"Multihash({func_name}, b64:{b64_digest})"
 
     def to_json(self, verbose: bool = False) -> str:
         """Convert Multihash to JSON string.
@@ -152,6 +165,9 @@ class Multihash(namedtuple("Multihash", "code,name,length,digest")):
         Returns:
             JSON string representation
 
+        Raises:
+            ValueError: If base64 encoding or JSON serialization fails
+
         Example:
             >>> mh = Multihash(func=Func.sha2_256, digest=b'...')
             >>> mh.to_json()
@@ -159,15 +175,23 @@ class Multihash(namedtuple("Multihash", "code,name,length,digest")):
             >>> mh.to_json(verbose=True)
             '{"code": 18, "name": "sha2-256", "length": 32, "digest": "base64:..."}'
         """
+        try:
+            digest_b64 = base64.b64encode(self.digest).decode("utf-8")
+        except Exception as e:
+            raise ValueError(f"Failed to encode digest to base64: {e}") from e
+
         data = {
             "code": self.code,
             "length": self.length,
-            "digest": base64.b64encode(self.digest).decode("utf-8"),
+            "digest": digest_b64,
         }
         if verbose:
             data["name"] = self.name if isinstance(self.name, str) else hex(self.code)
 
-        return json.dumps(data)
+        try:
+            return json.dumps(data)
+        except (TypeError, ValueError) as e:
+            raise ValueError(f"Failed to serialize to JSON: {e}") from e
 
 
 class MultihashSet:
@@ -405,7 +429,7 @@ def from_json(json_str: str) -> Multihash:
     # Decode base64 digest
     try:
         digest_bytes = base64.b64decode(digest_str)
-    except Exception as e:
+    except (binascii.Error, ValueError) as e:
         raise TypeError(f"Failed to decode base64 digest: {e}") from e
 
     # Validate length matches
@@ -729,7 +753,9 @@ def sum(data: bytes, code: Func | str | int, length: int | None = None) -> Multi
     return digest(data, code, length=length)
 
 
-def sum_stream(stream: BinaryIO, code: Func | str | int, length: int | None = None) -> Multihash:
+def sum_stream(
+    stream: BinaryIO, code: Func | str | int, length: int | None = None, chunk_size: int = 8192
+) -> Multihash:
     """Compute multihash from a stream/file-like object.
 
     This function reads data from a file-like object in chunks and computes
@@ -739,6 +765,7 @@ def sum_stream(stream: BinaryIO, code: Func | str | int, length: int | None = No
         stream: File-like object with read() method (e.g., file handle, BytesIO)
         code: Hash function code/name (Func enum, str, or int)
         length: Optional truncation length (-1 for full digest, None for auto)
+        chunk_size: Size of chunks to read from stream (default: 8192 bytes)
 
     Returns:
         Multihash: A new Multihash instance with the computed digest
@@ -746,6 +773,7 @@ def sum_stream(stream: BinaryIO, code: Func | str | int, length: int | None = No
     Raises:
         HashComputationError: If hash computation fails
         TruncationError: If truncation length is invalid
+        ValueError: If chunk_size is not positive
 
     Example:
         Using with a file handle:
@@ -760,7 +788,14 @@ def sum_stream(stream: BinaryIO, code: Func | str | int, length: int | None = No
         Using with truncation:
         >>> with open("file.bin", "rb") as f:
         ...     mh = sum_stream(f, Func.sha2_256, length=16)
+
+        Using with custom chunk size:
+        >>> with open("large_file.bin", "rb") as f:
+        ...     mh = sum_stream(f, Func.sha2_256, chunk_size=16384)
     """
+    if chunk_size <= 0:
+        raise ValueError(f"chunk_size must be positive, got {chunk_size}")
+
     func = FuncReg.get(code)
     is_shake = func in (Func.shake_128, Func.shake_256)
 
@@ -775,7 +810,6 @@ def sum_stream(stream: BinaryIO, code: Func | str | int, length: int | None = No
         raise HashComputationError(f"no available hash function for {func}")
 
     # Read in chunks for memory efficiency
-    chunk_size = 8192
     while True:
         chunk = stream.read(chunk_size)
         if not chunk:
