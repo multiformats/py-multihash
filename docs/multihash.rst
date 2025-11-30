@@ -12,6 +12,22 @@ multihash.constants module
    :show-inheritance:
    :undoc-members:
 
+multihash.exceptions module
+---------------------------
+
+.. automodule:: multihash.exceptions
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+multihash.funcs module
+----------------------
+
+.. automodule:: multihash.funcs
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
 multihash.multihash module
 --------------------------
 
