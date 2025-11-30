@@ -43,7 +43,10 @@ class Func(IntEnum):
     blake2b_256 = HASH_CODES["blake2b-256"]
     blake2b_512 = HASH_CODES["blake2b-512"]
     blake2s_256 = HASH_CODES["blake2s-256"]
-    md5 = HASH_CODES.get("md5", 0xD5)  # md5 may not be in constants
+    md5 = HASH_CODES.get("md5", 0xD5)  # md5 not in constants, using standard code
+    # Additional hash functions (if available in hashlib)
+    sha2_224 = HASH_CODES.get("sha2-224", 0x1013)  # May not be in constants
+    sha2_384 = HASH_CODES.get("sha2-384", 0x20)  # May not be in constants
 
 
 class IdentityHash:
@@ -89,6 +92,40 @@ class _FuncRegMeta(type):
         return iter(cls._func_hash)
 
 
+class ShakeHash:
+    """Wrapper for SHAKE variable-length hash functions."""
+
+    def __init__(self, shake_func, length: int):
+        """Initialize SHAKE hash with specified output length.
+
+        Args:
+            shake_func: hashlib.shake_128 or hashlib.shake_256
+            length: Output digest length in bytes
+        """
+        self._shake_func = shake_func
+        self._hasher = shake_func()
+        self._length = length
+        self.name = self._hasher.name
+
+    def update(self, data: bytes) -> None:
+        """Update the hash with data."""
+        self._hasher.update(data)
+
+    def digest(self) -> bytes:
+        """Return digest of specified length."""
+        return self._hasher.digest(self._length)
+
+    def hexdigest(self) -> str:
+        """Return hex digest."""
+        return self.digest().hex()
+
+    def copy(self) -> "ShakeHash":
+        """Create a copy of the hash state."""
+        c = ShakeHash(self._shake_func, self._length)
+        c._hasher = self._hasher.copy()
+        return c
+
+
 class FuncReg(metaclass=_FuncRegMeta):
     """Registry of supported hash functions."""
 
@@ -109,12 +146,19 @@ class FuncReg(metaclass=_FuncRegMeta):
         (Func.sha3_384, "sha3_384", hashlib.sha3_384),
         (Func.sha3_256, "sha3_256", hashlib.sha3_256),
         (Func.sha3_224, "sha3_224", hashlib.sha3_224),
-        (Func.shake_128, "shake_128", None),  # Variable length
-        (Func.shake_256, "shake_256", None),  # Variable length
+        (Func.shake_128, "shake_128", None),  # Variable length - use ShakeHash wrapper
+        (Func.shake_256, "shake_256", None),  # Variable length - use ShakeHash wrapper
         (Func.blake2b_256, "blake2b", lambda: hashlib.blake2b(digest_size=32)),
         (Func.blake2b_512, "blake2b", lambda: hashlib.blake2b(digest_size=64)),
         (Func.blake2s_256, "blake2s", lambda: hashlib.blake2s(digest_size=32)),
         (Func.md5, "md5", hashlib.md5),
+    ]
+
+    # Additional hash functions (conditionally added if available)
+    _optional_func_data: ClassVar[list] = [
+        # SHA2 variants (if available in hashlib)
+        (Func.sha2_224, "sha224", hashlib.sha224 if hasattr(hashlib, "sha224") else None),
+        (Func.sha2_384, "sha384", hashlib.sha384 if hasattr(hashlib, "sha384") else None),
     ]
 
     @classmethod
@@ -126,6 +170,17 @@ class FuncReg(metaclass=_FuncRegMeta):
 
         for func, hash_name, hash_new in cls._std_func_data:
             cls._do_register(func, func.name, hash_name, hash_new)
+
+        # Register optional functions if available
+        for func, hash_name, hash_new in cls._optional_func_data:
+            if hash_new is not None:
+                try:
+                    # Test that the function is actually available
+                    _ = hash_new()
+                    cls._do_register(func, func.name, hash_name, hash_new)
+                except (AttributeError, ValueError, TypeError):
+                    # Function not available, skip
+                    pass
 
     @classmethod
     def get(cls, func_hint: Func | str | int) -> Func | int:
@@ -204,14 +259,46 @@ class FuncReg(metaclass=_FuncRegMeta):
 
     @classmethod
     def func_from_hash(cls, hash_obj) -> Func | int:
-        """Return the multihash Func for a hashlib-compatible hash object."""
-        return cls._func_from_hash[hash_obj.name]
+        """Return the multihash Func for a hashlib-compatible hash object.
+
+        Args:
+            hash_obj: Hashlib-compatible hash object
+
+        Returns:
+            Func enum or int code
+
+        Raises:
+            KeyError: If hash object name is not registered
+        """
+        try:
+            return cls._func_from_hash[hash_obj.name]
+        except KeyError:
+            raise KeyError(f"unknown hash object name: {hash_obj.name}")
 
     @classmethod
-    def hash_from_func(cls, func: Func | int):
-        """Return a hashlib-compatible object for the multihash func."""
+    def hash_from_func(cls, func: Func | int, length: int | None = None):
+        """Return a hashlib-compatible object for the multihash func.
+
+        Args:
+            func: Hash function code or Func enum
+            length: Optional length for variable-length hashes (SHAKE)
+
+        Returns:
+            Hash object or None if not available
+        """
         new = cls._func_hash[func].new
-        return new() if new else None
+        if new is None:
+            # Handle SHAKE functions with variable length
+            if func == Func.shake_128:
+                if length is None:
+                    return None
+                return ShakeHash(hashlib.shake_128, length)
+            elif func == Func.shake_256:
+                if length is None:
+                    return None
+                return ShakeHash(hashlib.shake_256, length)
+            return None
+        return new()
 
 
 # Initialize the function hash registry.

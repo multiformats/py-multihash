@@ -1,11 +1,16 @@
 from binascii import hexlify
 from collections import namedtuple
 from io import BytesIO
+from typing import BinaryIO
 
 import base58
 import varint
 
 import multihash.constants as constants
+from multihash.exceptions import (
+    HashComputationError,
+    TruncationError,
+)
 from multihash.funcs import Func, FuncReg, _is_app_specific_func
 
 
@@ -112,7 +117,8 @@ class Multihash(namedtuple("Multihash", "code,name,length,digest")):
         Returns:
             bool: True if the data matches the digest
         """
-        computed = _do_digest(data, self.func)
+        # Use the stored length for verification to match the original digest
+        computed = _do_digest(data, self.func, length=self.length)
         return computed == self.digest
 
     def __str__(self):
@@ -123,17 +129,55 @@ class Multihash(namedtuple("Multihash", "code,name,length,digest")):
         return f"Multihash({func_name}, b64:{base64.b64encode(self.digest).decode()})"
 
 
-def _do_digest(data, func):
-    """Return the binary digest of `data` with the given `func`."""
+def _do_digest(data, func, length: int | None = None):
+    """Return the binary digest of `data` with the given `func`.
+
+    Args:
+        data: Input data to hash (bytes)
+        func: Hash function code/name
+        length: Optional truncation length (-1 means full digest, None means auto)
+
+    Returns:
+        bytes: Digest bytes (truncated if length specified)
+
+    Raises:
+        HashComputationError: If hash computation fails
+        TruncationError: If truncation length is invalid
+    """
     func = FuncReg.get(func)
-    hash_obj = FuncReg.hash_from_func(func)
+    is_shake = func in (Func.shake_128, Func.shake_256)
+
+    # Handle SHAKE functions which require length
+    if is_shake:
+        if length is None or length == -1:
+            # Default length for SHAKE-128 is 32, SHAKE-256 is 64
+            shake_length = 32 if func == Func.shake_128 else 64
+        else:
+            shake_length = length
+        hash_obj = FuncReg.hash_from_func(func, length=shake_length)
+    else:
+        hash_obj = FuncReg.hash_from_func(func)
+
     if not hash_obj:
-        raise ValueError("no available hash function for hash", func)
+        raise HashComputationError(f"no available hash function for {func}")
+
     hash_obj.update(data)
-    return bytes(hash_obj.digest())
+    digest_bytes = bytes(hash_obj.digest())
+
+    # Handle truncation (but not for SHAKE, as they already produce the right length)
+    if not is_shake and length is not None and length != -1:
+        if length < 0:
+            raise TruncationError(f"truncation length must be non-negative, got {length}")
+        if length == 0:
+            raise TruncationError("truncation length cannot be zero")
+        if length > len(digest_bytes):
+            raise TruncationError(f"truncation length {length} exceeds digest size {len(digest_bytes)}")
+        digest_bytes = digest_bytes[:length]
+
+    return digest_bytes
 
 
-def digest(data, func):
+def digest(data, func, length: int | None = None):
     """Hash the given `data` into a new `Multihash`.
 
     The given hash function `func` is used to perform the hashing.  It must be
@@ -142,6 +186,7 @@ def digest(data, func):
     Args:
         data: The data to hash (bytes)
         func: The hash function to use (Func enum, str, or int)
+        length: Optional truncation length (-1 for full digest, None for auto)
 
     Returns:
         Multihash: A new Multihash instance with the computed digest
@@ -151,8 +196,9 @@ def digest(data, func):
         >>> mh = digest(data, Func.sha1)
         >>> mh.encode('base64')
         b'ERQL7se16j8P28ldDdR/PFvCddqKMw=='
+        >>> mh_truncated = digest(data, Func.sha2_256, length=16)
     """
-    digest_bytes = _do_digest(data, func)
+    digest_bytes = _do_digest(data, func, length=length)
     return Multihash(func=func, digest=digest_bytes)
 
 
@@ -362,3 +408,90 @@ def get_prefix(multihash):
         return multihash[:2]
 
     raise ValueError("invalid multihash")
+
+
+def sum(data: bytes, code: Func | str | int, length: int | None = None) -> Multihash:
+    """Compute multihash for data (Go-compatible API).
+
+    This is similar to digest() but follows Go's multihash.Sum() API convention
+    where length=-1 means full digest.
+
+    Args:
+        data: Input data to hash (bytes)
+        code: Hash function code/name (Func enum, str, or int)
+        length: Truncation length (-1 for full digest, None for auto, or specific length)
+
+    Returns:
+        Multihash: A new Multihash instance with the computed digest
+
+    Example:
+        >>> mh = sum(b"hello", "sha2-256")
+        >>> mh_truncated = sum(b"hello", "sha2-256", length=16)
+        >>> mh_full = sum(b"hello", "sha2-256", length=-1)  # Full digest
+    """
+    return digest(data, code, length=length)
+
+
+def sum_stream(stream: BinaryIO, code: Func | str | int, length: int | None = None) -> Multihash:
+    """Compute multihash from a stream/file-like object.
+
+    This function reads data from a file-like object in chunks and computes
+    the multihash incrementally for memory efficiency.
+
+    Args:
+        stream: File-like object with read() method (e.g., file handle, BytesIO)
+        code: Hash function code/name (Func enum, str, or int)
+        length: Optional truncation length (-1 for full digest, None for auto)
+
+    Returns:
+        Multihash: A new Multihash instance with the computed digest
+
+    Raises:
+        HashComputationError: If hash computation fails
+        TruncationError: If truncation length is invalid
+
+    Example:
+        >>> with open("large_file.bin", "rb") as f:
+        ...     mh = sum_stream(f, "sha2-256")
+        >>> from io import BytesIO
+        ...     data = BytesIO(b"streaming data")
+        ...     mh = sum_stream(data, Func.sha2_256)
+    """
+    func = FuncReg.get(code)
+    is_shake = func in (Func.shake_128, Func.shake_256)
+
+    # Handle SHAKE functions which require length
+    if is_shake:
+        if length is None or length == -1:
+            # Default length for SHAKE-128 is 32, SHAKE-256 is 64
+            shake_length = 32 if func == Func.shake_128 else 64
+        else:
+            shake_length = length
+        hash_obj = FuncReg.hash_from_func(func, length=shake_length)
+    else:
+        hash_obj = FuncReg.hash_from_func(func)
+
+    if not hash_obj:
+        raise HashComputationError(f"no available hash function for {func}")
+
+    # Read in chunks for memory efficiency
+    chunk_size = 8192
+    while True:
+        chunk = stream.read(chunk_size)
+        if not chunk:
+            break
+        hash_obj.update(chunk)
+
+    digest_bytes = bytes(hash_obj.digest())
+
+    # Handle truncation (but not for SHAKE, as they already produce the right length)
+    if not is_shake and length is not None and length != -1:
+        if length < 0:
+            raise TruncationError(f"truncation length must be non-negative, got {length}")
+        if length == 0:
+            raise TruncationError("truncation length cannot be zero")
+        if length > len(digest_bytes):
+            raise TruncationError(f"truncation length {length} exceeds digest size {len(digest_bytes)}")
+        digest_bytes = digest_bytes[:length]
+
+    return Multihash(func=code, digest=digest_bytes)
