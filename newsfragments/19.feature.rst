@@ -1,0 +1,1 @@
+Added pymultihash-compatible APIs to enable py-libp2p migration from the archived pymultihash package.
