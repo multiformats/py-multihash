@@ -102,6 +102,82 @@ SHAKE-128 and SHAKE-256 support variable output lengths::
     mh = sum(b"hello", Func.shake_256)
     assert len(mh.digest) == 64
 
+Modern Hash Functions
+=====================
+
+BLAKE3
+------
+
+BLAKE3 is a cryptographic hash function that is much faster than MD5, SHA-1, SHA-2,
+and SHA-3, yet is just as secure as the latest standard SHA-3::
+
+    from multihash import digest, sum, Func
+
+    # Using BLAKE3
+    mh = digest(b"hello world", "blake3")
+    print(mh.digest.hex())
+
+    # Or with Func enum
+    mh = sum(b"hello world", Func.blake3)
+
+BLAKE2 Variants
+---------------
+
+BLAKE2b and BLAKE2s support configurable digest sizes. BLAKE2b supports 8 to 512 bits,
+while BLAKE2s supports 8 to 256 bits::
+
+    from multihash import digest, Func
+
+    # BLAKE2b with 256-bit output
+    mh = digest(b"data", "blake2b-256")
+
+    # BLAKE2b with 512-bit output (full)
+    mh = digest(b"data", "blake2b-512")
+
+    # BLAKE2s with 128-bit output
+    mh = digest(b"data", "blake2s-128")
+
+    # All variants from 8 to 512 bits are supported
+    mh = digest(b"data", "blake2b-384")  # 384-bit BLAKE2b
+
+Non-Cryptographic Hash Functions
+=================================
+
+MurmurHash3
+-----------
+
+MurmurHash3 is a fast, non-cryptographic hash function suitable for hash-based lookups,
+bloom filters, and other applications where speed is more important than cryptographic security::
+
+    from multihash import digest, Func
+
+    # MurmurHash3 128-bit
+    mh = digest(b"hello world", "murmur3-128")
+    print(mh.digest.hex())
+
+    # MurmurHash3 32-bit
+    mh = digest(b"hello world", "murmur3-32")
+
+.. warning::
+    MurmurHash3 is NOT suitable for cryptographic purposes or security-sensitive applications.
+    Use SHA-256, SHA-3, BLAKE2, or BLAKE3 for security-critical hashing.
+
+Specialized Hash Functions
+===========================
+
+Double-SHA-256
+--------------
+
+Double-SHA-256 (SHA-256 applied twice) is commonly used in Bitcoin and other cryptocurrencies::
+
+    from multihash import digest, Func
+
+    # Double-SHA-256 (used in Bitcoin)
+    mh = digest(b"block data", "dbl-sha2-256")
+    print(mh.digest.hex())
+
+    # Equivalent to: SHA-256(SHA-256(data))
+
 Security Considerations
 ========================
 
