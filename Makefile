@@ -92,6 +92,18 @@ dist: clean
 pr: clean fix lint typecheck test
 	@echo "PR preparation complete! All checks passed."
 
+# docs helpers
+
+validate-newsfragments:
+	python ./newsfragments/validate_files.py
+	towncrier build --draft --version preview
+
+build-docs:
+	sphinx-apidoc -o docs/ . "*conftest*" tests/
+	$(MAKE) -C docs clean
+	$(MAKE) -C docs html
+	$(MAKE) -C docs doctest
+
 # release commands
 
 package-test: clean
