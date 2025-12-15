@@ -1,14 +1,18 @@
 """Tests for new features: streaming, truncation, SHAKE, exceptions."""
 
+import base64
 import hashlib
+import json
 from io import BytesIO
 
 import pytest
+import varint
 
 import multihash
 from multihash import (
     Func,
     HashComputationError,
+    Multihash,
     MultihashSet,
     ShakeHash,
     TruncationError,
@@ -554,8 +558,6 @@ class TestJsonSerializationTestCase:
         json_str = mh.to_json()
 
         # Should be valid JSON
-        import json
-
         data = json.loads(json_str)
         assert "code" in data
         assert "length" in data
@@ -568,8 +570,6 @@ class TestJsonSerializationTestCase:
         json_str = mh.to_json(verbose=True)
 
         # Should be valid JSON with name
-        import json
-
         data = json.loads(json_str)
         assert "code" in data
         assert "length" in data
@@ -638,7 +638,6 @@ class TestJsonSerializationTestCase:
 
     def test_json_missing_fields(self):
         """Test handling of missing required fields."""
-        import json
 
         # Missing code
         with pytest.raises(ValueError, match="Missing required fields"):
@@ -657,9 +656,6 @@ class TestJsonSerializationTestCase:
         mh = sum(b"test data", Func.sha2_256)
         json_str = mh.to_json()
 
-        import base64
-        import json
-
         data = json.loads(json_str)
         digest_str = data["digest"]
 
@@ -669,9 +665,6 @@ class TestJsonSerializationTestCase:
 
     def test_json_length_mismatch(self):
         """Test handling of length mismatch."""
-        import base64
-        import json
-
         # Create JSON with incorrect length
         digest_bytes = b"test"
         json_data = {
@@ -698,7 +691,7 @@ class TestStreamReadWriteTestCase:
 
         # Read back from stream
         stream.seek(0)
-        mh_read = mh_original.read(stream)
+        mh_read = Multihash.read(stream)
 
         # Verify they match
         assert mh_read.code == mh_original.code
@@ -721,9 +714,9 @@ class TestStreamReadWriteTestCase:
 
         # Read them back
         stream.seek(0)
-        read_mh1 = mh1.read(stream)
-        read_mh2 = mh2.read(stream)
-        read_mh3 = mh3.read(stream)
+        read_mh1 = Multihash.read(stream)
+        read_mh2 = Multihash.read(stream)
+        read_mh3 = Multihash.read(stream)
 
         # Verify
         assert read_mh1.digest == mh1.digest
@@ -732,8 +725,6 @@ class TestStreamReadWriteTestCase:
 
     def test_read_from_encoded_multihash(self):
         """Test reading from an already encoded multihash."""
-        import multihash
-
         # Create an encoded multihash using the encode function
         digest_bytes = hashlib.sha256(b"test data").digest()
         encoded = multihash.encode(digest_bytes, Func.sha2_256)
@@ -760,8 +751,6 @@ class TestStreamReadWriteTestCase:
     def test_read_insufficient_data(self):
         """Test reading from a stream with insufficient data."""
         # Create a truncated multihash (code and length but no digest)
-        import varint
-
         stream = BytesIO()
         stream.write(varint.encode(0x12))  # sha2-256 code
         stream.write(varint.encode(32))  # length 32
@@ -773,8 +762,6 @@ class TestStreamReadWriteTestCase:
 
     def test_read_invalid_code(self):
         """Test reading a multihash with an invalid code."""
-        import varint
-
         # Create a multihash with invalid code
         stream = BytesIO()
         stream.write(varint.encode(0xFFFF))  # Invalid code
@@ -785,13 +772,10 @@ class TestStreamReadWriteTestCase:
         with pytest.raises(ValueError, match="Invalid multihash code"):
             multihash.Multihash.read(stream)
 
-    def test_read_negative_length(self):
-        """Test reading a multihash with negative length."""
-        import varint
-
+    def test_read_zero_length(self):
+        """Test reading a multihash with zero length digest."""
         stream = BytesIO()
         stream.write(varint.encode(0x12))
-        # Varint doesn't naturally encode negative numbers, but we can test the validation
         stream.write(b"\x00")  # Length 0
 
         stream.seek(0)
@@ -884,8 +868,6 @@ class TestStreamReadWriteTestCase:
 
     def test_read_write_app_code(self):
         """Test read/write with application-specific codes."""
-        from multihash.funcs import FuncReg
-
         # Register an app-specific code
         app_code = 0x05
         FuncReg.register(app_code, "test-app-hash", "test-app-sha256", lambda: hashlib.sha256())

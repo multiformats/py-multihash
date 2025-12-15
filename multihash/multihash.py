@@ -245,9 +245,6 @@ class Multihash(namedtuple("Multihash", "code,name,length,digest")):
         except (TypeError, ValueError) as e:
             raise ValueError(f"Failed to read multihash length from stream: {e}") from e
 
-        if length < 0:
-            raise ValueError(f"Invalid multihash length: {length}")
-
         digest = stream.read(length)
         if len(digest) != length:
             raise ValueError(f"Insufficient data in stream: expected {length} bytes, got {len(digest)}")
@@ -269,7 +266,7 @@ class Multihash(namedtuple("Multihash", "code,name,length,digest")):
 
         Raises:
             TypeError: If stream is not a valid binary stream
-            IOError: If writing to the stream fails
+            OSError: If writing to the stream fails
 
         Example:
             Writing to a BytesIO stream:
