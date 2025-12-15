@@ -175,11 +175,11 @@ class Multihash(namedtuple("Multihash", "code,name,length,digest")):
             ValueError: If base64 encoding or JSON serialization fails
 
         Example:
-            >>> mh = Multihash(func=Func.sha2_256, digest=b'...')
-            >>> mh.to_json()
-            '{"code": 18, "length": 32, "digest": "base64:..."}'
-            >>> mh.to_json(verbose=True)
-            '{"code": 18, "name": "sha2-256", "length": 32, "digest": "base64:..."}'
+            >>> mh = sum(b"example", Func.sha2_256)
+            >>> mh.to_json()  # doctest: +ELLIPSIS
+            '{"code": 18, "length": 32, "digest": "..."}'
+            >>> mh.to_json(verbose=True)  # doctest: +ELLIPSIS
+            '{"code": 18, "length": 32, "digest": "...", "name": "sha2-256"}'
         """
         try:
             digest_b64 = base64.b64encode(self.digest).decode("utf-8")
@@ -228,9 +228,10 @@ class Multihash(namedtuple("Multihash", "code,name,length,digest")):
             ...     mh = Multihash.read(f)
 
             Reading multiple multihashes from a stream:
-            >>> with open("multihashes.bin", "rb") as f:
-            ...     mh1 = Multihash.read(f)
-            ...     mh2 = Multihash.read(f)
+            >>> from io import BytesIO
+            >>> data = BytesIO(b'\\x12\\x20' + b'0' * 32 + b'\\x12\\x20' + b'1' * 32)
+            >>> mh1 = Multihash.read(data)
+            >>> mh2 = Multihash.read(data)
         """
         try:
             code = varint.decode_stream(stream)
@@ -282,9 +283,12 @@ class Multihash(namedtuple("Multihash", "code,name,length,digest")):
             ...     bytes_written = mh.write(f)
 
             Writing multiple multihashes to a stream:
-            >>> with open("multihashes.bin", "wb") as f:
-            ...     mh1.write(f)
-            ...     mh2.write(f)
+            >>> from io import BytesIO
+            >>> mh1 = sum(b"data1", Func.sha2_256)
+            >>> mh2 = sum(b"data2", Func.sha2_256)
+            >>> stream = BytesIO()
+            >>> mh1.write(stream)
+            >>> mh2.write(stream)
         """
         try:
             encoded = varint.encode(self.code) + varint.encode(self.length) + self.digest
@@ -304,13 +308,15 @@ class MultihashSet:
     objects.
 
     Example:
-        >>> from multihash import MultihashSet, sum, Func
         >>> mh_set = MultihashSet()
         >>> mh1 = sum(b"file1", Func.sha2_256)
         >>> mh_set.Add(mh1)  # Go-style
+        >>> mh2 = sum(b"file2", Func.sha2_256)  # Define mh2
         >>> mh_set.add(mh2)   # Python-style
         >>> mh_set.Has(mh1)   # True
+        True
         >>> len(mh_set)       # 2
+        2
     """
 
     def __init__(self, iterable=None):
@@ -507,9 +513,11 @@ def from_json(json_str: str) -> Multihash:
         TypeError: If digest cannot be decoded
 
     Example:
-        >>> json_str = '{"code": 18, "length": 32, "digest": "base64:..."}'
+        >>> mh_test = sum(b"test", Func.sha2_256)
+        >>> json_str = mh_test.to_json()
         >>> mh = from_json(json_str)
-        >>> json_str_verbose = '{"code": 18, "name": "sha2-256", "length": 32, "digest": "base64:..."}'
+        >>> mh_test2 = sum(b"test", Func.sha2_256)
+        >>> json_str_verbose = mh_test2.to_json(verbose=True)
         >>> mh = from_json(json_str_verbose)
     """
     try:
