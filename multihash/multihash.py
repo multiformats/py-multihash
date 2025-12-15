@@ -199,6 +199,102 @@ class Multihash(namedtuple("Multihash", "code,name,length,digest")):
         except (TypeError, ValueError) as e:
             raise ValueError(f"Failed to serialize to JSON: {e}") from e
 
+    @classmethod
+    def read(cls, stream: BinaryIO) -> "Multihash":
+        """Read a multihash from a binary stream.
+
+        This method reads a varint-encoded multihash from a stream, similar to
+        the Rust implementation's Multihash::read() method. It reads the code and
+        length as varints, then reads the digest bytes.
+
+        Args:
+            stream: A binary stream object with read() method (e.g., file handle, BytesIO)
+
+        Returns:
+            Multihash: A new Multihash instance read from the stream
+
+        Raises:
+            ValueError: If the stream data is invalid or insufficient
+            TypeError: If stream is not a valid binary stream
+
+        Example:
+            Reading from a BytesIO stream:
+            >>> from io import BytesIO
+            >>> data = BytesIO(b'\\x12\\x20' + b'0' * 32)  # sha2-256 with 32-byte digest
+            >>> mh = Multihash.read(data)
+
+            Reading from a file:
+            >>> with open("multihash.bin", "rb") as f:
+            ...     mh = Multihash.read(f)
+
+            Reading multiple multihashes from a stream:
+            >>> with open("multihashes.bin", "rb") as f:
+            ...     mh1 = Multihash.read(f)
+            ...     mh2 = Multihash.read(f)
+        """
+        try:
+            code = varint.decode_stream(stream)
+        except (TypeError, ValueError) as e:
+            raise ValueError(f"Failed to read multihash code from stream: {e}") from e
+
+        if not is_valid_code(code):
+            raise ValueError(f"Invalid multihash code: {code}")
+
+        try:
+            length = varint.decode_stream(stream)
+        except (TypeError, ValueError) as e:
+            raise ValueError(f"Failed to read multihash length from stream: {e}") from e
+
+        digest = stream.read(length)
+        if len(digest) != length:
+            raise ValueError(f"Insufficient data in stream: expected {length} bytes, got {len(digest)}")
+
+        name = constants.CODE_HASHES.get(code, code)
+        return cls(code=code, name=name, length=length, digest=digest)
+
+    def write(self, stream: BinaryIO) -> int:
+        """Write this multihash to a binary stream.
+
+        This method writes the multihash to a stream in varint-encoded format,
+        similar to the Rust implementation's Multihash::write() method.
+
+        Args:
+            stream: A binary stream object with write() method (e.g., file handle, BytesIO)
+
+        Returns:
+            int: The number of bytes written to the stream
+
+        Raises:
+            TypeError: If stream is not a valid binary stream
+            OSError: If writing to the stream fails
+
+        Example:
+            Writing to a BytesIO stream:
+            >>> from io import BytesIO
+            >>> mh = sum(b"hello", Func.sha2_256)
+            >>> stream = BytesIO()
+            >>> bytes_written = mh.write(stream)
+            >>> stream.getvalue()  # Get the written bytes
+
+            Writing to a file:
+            >>> mh = sum(b"hello", Func.sha2_256)
+            >>> with open("multihash.bin", "wb") as f:
+            ...     bytes_written = mh.write(f)
+
+            Writing multiple multihashes to a stream:
+            >>> with open("multihashes.bin", "wb") as f:
+            ...     mh1.write(f)
+            ...     mh2.write(f)
+        """
+        try:
+            encoded = varint.encode(self.code) + varint.encode(self.length) + self.digest
+            bytes_written = stream.write(encoded)
+            return bytes_written
+        except (AttributeError, TypeError) as e:
+            raise TypeError(f"Stream must have a write() method: {e}") from e
+        except OSError as e:
+            raise OSError(f"Failed to write multihash to stream: {e}") from e
+
 
 class MultihashSet:
     """A specialized collection for managing unique Multihash values.

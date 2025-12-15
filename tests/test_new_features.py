@@ -1,13 +1,18 @@
 """Tests for new features: streaming, truncation, SHAKE, exceptions."""
 
+import base64
 import hashlib
+import json
 from io import BytesIO
 
 import pytest
+import varint
 
+import multihash
 from multihash import (
     Func,
     HashComputationError,
+    Multihash,
     MultihashSet,
     ShakeHash,
     TruncationError,
@@ -553,8 +558,6 @@ class TestJsonSerializationTestCase:
         json_str = mh.to_json()
 
         # Should be valid JSON
-        import json
-
         data = json.loads(json_str)
         assert "code" in data
         assert "length" in data
@@ -567,8 +570,6 @@ class TestJsonSerializationTestCase:
         json_str = mh.to_json(verbose=True)
 
         # Should be valid JSON with name
-        import json
-
         data = json.loads(json_str)
         assert "code" in data
         assert "length" in data
@@ -637,7 +638,6 @@ class TestJsonSerializationTestCase:
 
     def test_json_missing_fields(self):
         """Test handling of missing required fields."""
-        import json
 
         # Missing code
         with pytest.raises(ValueError, match="Missing required fields"):
@@ -656,9 +656,6 @@ class TestJsonSerializationTestCase:
         mh = sum(b"test data", Func.sha2_256)
         json_str = mh.to_json()
 
-        import base64
-        import json
-
         data = json.loads(json_str)
         digest_str = data["digest"]
 
@@ -668,9 +665,6 @@ class TestJsonSerializationTestCase:
 
     def test_json_length_mismatch(self):
         """Test handling of length mismatch."""
-        import base64
-        import json
-
         # Create JSON with incorrect length
         digest_bytes = b"test"
         json_data = {
@@ -681,3 +675,213 @@ class TestJsonSerializationTestCase:
 
         with pytest.raises(ValueError, match="Length mismatch"):
             from_json(json.dumps(json_data))
+
+
+class TestStreamReadWriteTestCase:
+    """Tests for Multihash.read() and Multihash.write() stream methods."""
+
+    def test_write_read_roundtrip(self):
+        """Test writing and reading a multihash from a stream."""
+        mh_original = sum(b"hello world", Func.sha2_256)
+        stream = BytesIO()
+
+        # Write to stream
+        bytes_written = mh_original.write(stream)
+        assert bytes_written > 0
+
+        # Read back from stream
+        stream.seek(0)
+        mh_read = Multihash.read(stream)
+
+        # Verify they match
+        assert mh_read.code == mh_original.code
+        assert mh_read.name == mh_original.name
+        assert mh_read.length == mh_original.length
+        assert mh_read.digest == mh_original.digest
+
+    def test_write_multiple_multihashes(self):
+        """Test writing multiple multihashes to the same stream."""
+        mh1 = sum(b"first", Func.sha2_256)
+        mh2 = sum(b"second", Func.sha2_512)
+        mh3 = sum(b"third", Func.sha1)
+
+        stream = BytesIO()
+
+        # Write all multihashes
+        mh1.write(stream)
+        mh2.write(stream)
+        mh3.write(stream)
+
+        # Read them back
+        stream.seek(0)
+        read_mh1 = Multihash.read(stream)
+        read_mh2 = Multihash.read(stream)
+        read_mh3 = Multihash.read(stream)
+
+        # Verify
+        assert read_mh1.digest == mh1.digest
+        assert read_mh2.digest == mh2.digest
+        assert read_mh3.digest == mh3.digest
+
+    def test_read_from_encoded_multihash(self):
+        """Test reading from an already encoded multihash."""
+        # Create an encoded multihash using the encode function
+        digest_bytes = hashlib.sha256(b"test data").digest()
+        encoded = multihash.encode(digest_bytes, Func.sha2_256)
+
+        # Read it using Multihash.read()
+        stream = BytesIO(encoded)
+        mh = multihash.Multihash.read(stream)
+
+        assert mh.code == 0x12
+        assert mh.digest == digest_bytes
+        assert mh.length == len(digest_bytes)
+
+    def test_write_returns_correct_byte_count(self):
+        """Test that write() returns the correct number of bytes written."""
+        mh = sum(b"test", Func.sha2_256)
+        stream = BytesIO()
+
+        bytes_written = mh.write(stream)
+        stream.seek(0)
+        actual_bytes = stream.read()
+
+        assert bytes_written == len(actual_bytes)
+
+    def test_read_insufficient_data(self):
+        """Test reading from a stream with insufficient data."""
+        # Create a truncated multihash (code and length but no digest)
+        stream = BytesIO()
+        stream.write(varint.encode(0x12))  # sha2-256 code
+        stream.write(varint.encode(32))  # length 32
+        stream.write(b"short")  # Only 5 bytes instead of 32
+
+        stream.seek(0)
+        with pytest.raises(ValueError, match="Insufficient data"):
+            multihash.Multihash.read(stream)
+
+    def test_read_invalid_code(self):
+        """Test reading a multihash with an invalid code."""
+        # Create a multihash with invalid code
+        stream = BytesIO()
+        stream.write(varint.encode(0xFFFF))  # Invalid code
+        stream.write(varint.encode(10))
+        stream.write(b"0" * 10)
+
+        stream.seek(0)
+        with pytest.raises(ValueError, match="Invalid multihash code"):
+            multihash.Multihash.read(stream)
+
+    def test_read_zero_length(self):
+        """Test reading a multihash with zero length digest."""
+        stream = BytesIO()
+        stream.write(varint.encode(0x12))
+        stream.write(b"\x00")  # Length 0
+
+        stream.seek(0)
+        mh = multihash.Multihash.read(stream)
+        assert mh.length == 0
+        assert mh.digest == b""
+
+    def test_write_to_file(self, tmp_path):
+        """Test writing multihash to an actual file."""
+        mh = sum(b"file test", Func.sha2_256)
+        file_path = tmp_path / "multihash.bin"
+
+        # Write to file
+        with open(file_path, "wb") as f:
+            mh.write(f)
+
+        # Read from file
+        with open(file_path, "rb") as f:
+            mh_read = multihash.Multihash.read(f)
+
+        assert mh_read.digest == mh.digest
+        assert mh_read.code == mh.code
+
+    def test_read_write_with_truncated_multihash(self):
+        """Test read/write with a truncated multihash."""
+        mh = sum(b"truncation test", Func.sha2_256, length=16)
+        stream = BytesIO()
+
+        # Write truncated multihash
+        mh.write(stream)
+
+        # Read it back
+        stream.seek(0)
+        mh_read = multihash.Multihash.read(stream)
+
+        assert mh_read.length == 16
+        assert mh_read.digest == mh.digest
+        assert len(mh_read.digest) == 16
+
+    def test_read_write_shake_multihash(self):
+        """Test read/write with SHAKE hash functions."""
+        mh = sum(b"shake test", Func.shake_128, length=32)
+        stream = BytesIO()
+
+        mh.write(stream)
+        stream.seek(0)
+        mh_read = multihash.Multihash.read(stream)
+
+        assert mh_read.code == Func.shake_128.value
+        assert mh_read.digest == mh.digest
+        assert mh_read.length == 32
+
+    def test_read_write_with_different_hash_functions(self):
+        """Test read/write with various hash functions."""
+        test_data = b"multi-function test"
+        hash_functions = [
+            Func.sha1,
+            Func.sha2_256,
+            Func.sha2_512,
+            Func.sha3_256,
+            Func.blake2b_256,
+        ]
+
+        for func in hash_functions:
+            mh = sum(test_data, func)
+            stream = BytesIO()
+
+            mh.write(stream)
+            stream.seek(0)
+            mh_read = multihash.Multihash.read(stream)
+
+            assert mh_read.code == mh.code
+            assert mh_read.digest == mh.digest
+            assert mh_read.length == mh.length
+
+    def test_write_to_invalid_stream(self):
+        """Test that write() raises appropriate error for invalid stream."""
+        mh = sum(b"test", Func.sha2_256)
+
+        # Try to write to a non-writable object
+        with pytest.raises(TypeError, match="write\\(\\) method"):
+            mh.write("not a stream")
+
+    def test_read_from_empty_stream(self):
+        """Test reading from an empty stream."""
+        stream = BytesIO(b"")
+
+        with pytest.raises(ValueError, match="Failed to read"):
+            multihash.Multihash.read(stream)
+
+    def test_read_write_app_code(self):
+        """Test read/write with application-specific codes."""
+        # Register an app-specific code
+        app_code = 0x05
+        FuncReg.register(app_code, "test-app-hash", "test-app-sha256", lambda: hashlib.sha256())
+
+        try:
+            mh = sum(b"app code test", app_code)
+            stream = BytesIO()
+
+            mh.write(stream)
+            stream.seek(0)
+            mh_read = multihash.Multihash.read(stream)
+
+            assert mh_read.code == app_code
+            assert mh_read.digest == mh.digest
+        finally:
+            # Clean up
+            FuncReg.unregister(app_code)

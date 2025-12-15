@@ -1,0 +1,1 @@
+Add stream I/O methods ``Multihash.read()`` and ``Multihash.write()`` for reading and writing multihashes from/to binary streams.
