@@ -258,13 +258,14 @@ class Blake3Hash:
     Example:
         >>> from multihash import digest
         >>> mh = digest(b"hello world", "blake3")
-        >>> print(mh.digest.hex())
-
-        Or use the hash class directly:
+        >>> mh.digest.hex()  # doctest: +ELLIPSIS
+        '...'
+        >>> # Or use the hash class directly:
         >>> h = Blake3Hash()
         >>> h.update(b"hello ")
         >>> h.update(b"world")
-        >>> print(h.hexdigest())
+        >>> h.hexdigest()  # doctest: +ELLIPSIS
+        '...'
     """
 
     name: str = "blake3"
@@ -302,12 +303,13 @@ class Murmur3_128Hash:
     Example:
         >>> from multihash import digest
         >>> mh = digest(b"hello world", "murmur3-128")
-        >>> print(mh.digest.hex())
-
-        Or use the hash class directly with a custom seed:
+        >>> mh.digest.hex()  # doctest: +ELLIPSIS
+        '...'
+        >>> # Or use the hash class directly with a custom seed:
         >>> h = Murmur3_128Hash(seed=42)
         >>> h.update(b"data")
-        >>> print(h.hexdigest())
+        >>> h.hexdigest()  # doctest: +ELLIPSIS
+        '...'
     """
 
     name: str = "murmur3-128"
@@ -348,12 +350,13 @@ class Murmur3_32Hash:
     Example:
         >>> from multihash import digest
         >>> mh = digest(b"hello world", "murmur3-32")
-        >>> print(mh.digest.hex())
-
-        Or use the hash class directly with a custom seed:
+        >>> mh.digest.hex()  # doctest: +ELLIPSIS
+        '...'
+        >>> # Or use the hash class directly with a custom seed:
         >>> h = Murmur3_32Hash(seed=0)
         >>> h.update(b"data")
-        >>> print(h.hexdigest())
+        >>> h.hexdigest()  # doctest: +ELLIPSIS
+        '...'
     """
 
     name: str = "murmur3-32"
@@ -394,12 +397,13 @@ class DoubleSHA256Hash:
     Example:
         >>> from multihash import digest
         >>> mh = digest(b"hello world", "dbl-sha2-256")
-        >>> print(mh.digest.hex())
-
-        Or use the hash class directly:
+        >>> mh.digest.hex()  # doctest: +ELLIPSIS
+        '...'
+        >>> # Or use the hash class directly:
         >>> h = DoubleSHA256Hash()
         >>> h.update(b"data")
-        >>> print(h.hexdigest())
+        >>> h.hexdigest()  # doctest: +ELLIPSIS
+        '...'
     """
 
     name: str = "dbl-sha2-256"
