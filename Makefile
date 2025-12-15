@@ -91,3 +91,43 @@ dist: clean
 
 pr: clean fix lint typecheck test
 	@echo "PR preparation complete! All checks passed."
+
+# release commands
+
+package-test: clean
+	python -m build
+	python scripts/release/test_package.py
+
+notes: check-bump validate-newsfragments
+	# Let UPCOMING_VERSION be the version that is used for the current bump
+	$(eval UPCOMING_VERSION=$(shell bump-my-version bump --dry-run $(bump) -v | awk -F"'" '/New version will be / {print $$2}'))
+	# Now generate the release notes to have them included in the release commit
+	towncrier build --yes --version $(UPCOMING_VERSION)
+	# Before we bump the version, make sure that the towncrier-generated docs will build
+	make build-docs
+	git commit -m "Compile release notes for v$(UPCOMING_VERSION)"
+
+release: check-bump check-git clean
+	# verify that notes command ran correctly
+	./newsfragments/validate_files.py is-empty
+	CURRENT_SIGN_SETTING=$(git config commit.gpgSign)
+	git config commit.gpgSign true
+	bump-my-version bump $(bump)
+	python -m build
+	git config commit.gpgSign "$(CURRENT_SIGN_SETTING)"
+	git push upstream && git push upstream --tags
+	twine upload dist/*
+
+# release helpers
+
+check-bump:
+ifndef bump
+	$(error bump must be set, typically: major, minor, patch, or devnum)
+endif
+
+check-git:
+	# require that upstream is configured for libp2p/py-libp2p
+	@if ! git remote -v | grep "upstream[[:space:]]git@github.com:libp2p/py-libp2p.git (push)\|upstream[[:space:]]https://github.com/libp2p/py-libp2p (push)"; then \
+		echo "Error: You must have a remote named 'upstream' that points to 'py-libp2p'"; \
+		exit 1; \
+	fi
