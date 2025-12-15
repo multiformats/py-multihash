@@ -1,0 +1,1 @@
+Added BLAKE3, MurmurHash3 (32-bit and 128-bit), and double-SHA-256 hash functions.
