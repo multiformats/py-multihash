@@ -29,7 +29,7 @@ Features
 --------
 
 * Support for 125+ hash functions including:
-  
+
   * **Cryptographic hashes**: SHA-1, SHA-2 (224/256/384/512), SHA-3, BLAKE2b, BLAKE2s, BLAKE3
   * **Variable-length hashes**: SHAKE-128, SHAKE-256
   * **Non-cryptographic hashes**: MurmurHash3 (32-bit and 128-bit)
@@ -51,13 +51,13 @@ Quick Start
 
     # Using modern hash functions
     mh = digest(b"hello world", "blake3")
-    
+
     # Using MurmurHash3 for fast, non-cryptographic hashing
     mh = digest(b"data", "murmur3-128")
-    
+
     # Using BLAKE2b with custom digest size
     mh = digest(b"data", "blake2b-256")
-    
+
     # Go-compatible API
     mh = sum(b"hello world", Func.sha2_256)
     print(mh.encode('hex'))

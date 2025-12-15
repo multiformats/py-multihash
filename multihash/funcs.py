@@ -251,15 +251,15 @@ class ShakeHash:
 
 class Blake3Hash:
     """hashlib-compatible wrapper for Blake3 using official blake3 library.
-    
+
     BLAKE3 is a cryptographic hash function that is much faster than MD5, SHA-1, SHA-2,
     and SHA-3, yet is just as secure as the latest standard SHA-3.
-    
+
     Example:
         >>> from multihash import digest
         >>> mh = digest(b"hello world", "blake3")
         >>> print(mh.digest.hex())
-        
+
         Or use the hash class directly:
         >>> h = Blake3Hash()
         >>> h.update(b"hello ")
@@ -295,15 +295,15 @@ class Blake3Hash:
 
 class Murmur3_128Hash:
     """hashlib-compatible wrapper for MurmurHash3 128-bit using official mmh3 library.
-    
+
     MurmurHash3 is a fast, non-cryptographic hash function suitable for hash-based lookups.
     Note: Not suitable for cryptographic purposes.
-    
+
     Example:
         >>> from multihash import digest
         >>> mh = digest(b"hello world", "murmur3-128")
         >>> print(mh.digest.hex())
-        
+
         Or use the hash class directly with a custom seed:
         >>> h = Murmur3_128Hash(seed=42)
         >>> h.update(b"data")
@@ -341,15 +341,15 @@ class Murmur3_128Hash:
 
 class Murmur3_32Hash:
     """hashlib-compatible wrapper for MurmurHash3 32-bit using official mmh3 library.
-    
+
     MurmurHash3 32-bit variant is a fast, non-cryptographic hash function.
     Note: Not suitable for cryptographic purposes.
-    
+
     Example:
         >>> from multihash import digest
         >>> mh = digest(b"hello world", "murmur3-32")
         >>> print(mh.digest.hex())
-        
+
         Or use the hash class directly with a custom seed:
         >>> h = Murmur3_32Hash(seed=0)
         >>> h.update(b"data")
@@ -387,15 +387,15 @@ class Murmur3_32Hash:
 
 class DoubleSHA256Hash:
     """hashlib-compatible wrapper for double SHA2-256 (used in Bitcoin).
-    
+
     Applies SHA-256 twice: SHA-256(SHA-256(data)). This is commonly used in Bitcoin
     and other cryptocurrencies for additional security.
-    
+
     Example:
         >>> from multihash import digest
         >>> mh = digest(b"hello world", "dbl-sha2-256")
         >>> print(mh.digest.hex())
-        
+
         Or use the hash class directly:
         >>> h = DoubleSHA256Hash()
         >>> h.update(b"data")
@@ -466,15 +466,15 @@ def _create_blake2_variant(variant: str, digest_bytes: int):
     Args:
         variant: Either 'blake2b' or 'blake2s'
         digest_bytes: Number of bytes in the digest (1-64 for blake2b, 1-32 for blake2s)
-        
+
     Returns:
         A hashlib-compatible hash class for the specified Blake2 variant
-        
+
     Example:
         >>> from multihash import digest
         >>> # Use BLAKE2b with 256-bit output
         >>> mh = digest(b"hello", "blake2b-256")
-        >>> 
+        >>>
         >>> # Use BLAKE2s with 128-bit output
         >>> mh = digest(b"hello", "blake2s-128")
         >>>
