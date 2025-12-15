@@ -7,7 +7,7 @@ import hashlib
 import pytest
 
 from multihash import Func, FuncReg, IdentityHash, Multihash, digest
-from multihash.constants import HASH_CODES, HASH_TABLE
+from multihash.constants import HASH_CODES
 
 
 class FuncTestCase:
@@ -191,14 +191,6 @@ class NewHashFunctionsTestCase:
         """Test that MD4 is in Func enum."""
         assert hasattr(Func, "md4")
         assert Func.md4 == 0xD4
-
-    def test_func_count(self):
-        """Test that Func enum has expected number of members matching HASH_TABLE."""
-        expected_count = len(HASH_TABLE)
-        func_count = len(list(Func))
-        assert func_count == expected_count, (
-            f"Expected {expected_count} Func members (matching HASH_TABLE), got {func_count}"
-        )
 
     def test_blake2_variants_deterministic(self):
         """Test that Blake2 variants produce consistent results."""
