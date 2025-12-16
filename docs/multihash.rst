@@ -1,11 +1,6 @@
 multihash package
 =================
 
-.. testsetup::
-
-   from multihash import Multihash, MultihashSet, from_json, sum, digest
-   from multihash.funcs import Func, Blake3Hash, Murmur3_128Hash, Murmur3_32Hash, DoubleSHA256Hash
-
 Submodules
 ----------
 
