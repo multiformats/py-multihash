@@ -9,9 +9,6 @@ py-multihash
 .. image:: https://github.com/multiformats/py-multihash/actions/workflows/tox.yml/badge.svg
         :target: https://github.com/multiformats/py-multihash/actions
 
-.. image:: https://codecov.io/gh/multiformats/py-multihash/branch/master/graph/badge.svg
-        :target: https://codecov.io/gh/multiformats/py-multihash
-
 .. image:: https://readthedocs.org/projects/multihash/badge/?version=latest
         :target: https://multihash.readthedocs.io/en/latest/?badge=latest
         :alt: Documentation Status
