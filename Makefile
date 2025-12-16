@@ -138,8 +138,8 @@ ifndef bump
 endif
 
 check-git:
-	# require that upstream is configured for libp2p/py-libp2p
-	@if ! git remote -v | grep "upstream[[:space:]]git@github.com:libp2p/py-libp2p.git (push)\|upstream[[:space:]]https://github.com/libp2p/py-libp2p (push)"; then \
-		echo "Error: You must have a remote named 'upstream' that points to 'py-libp2p'"; \
+	# require that upstream is configured for multiformats/py-multihash
+	@if ! git remote -v | grep "upstream[[:space:]]git@github.com:multiformats/py-multihash.git (push)\|upstream[[:space:]]https://github.com/multiformats/py-multihash (push)"; then \
+		echo "Error: You must have a remote named 'upstream' that points to 'py-multihash'"; \
 		exit 1; \
 	fi
