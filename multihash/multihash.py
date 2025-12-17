@@ -7,7 +7,6 @@ from collections.abc import Iterator
 from io import BytesIO
 from typing import BinaryIO
 
-import base58
 import varint
 
 import multihash.constants as constants
@@ -16,6 +15,8 @@ from multihash.exceptions import (
     TruncationError,
 )
 from multihash.funcs import Func, FuncReg, _is_app_specific_func
+
+from . import base58
 
 
 def _resolve_shake_length(func: Func | int, length: int | None) -> int:

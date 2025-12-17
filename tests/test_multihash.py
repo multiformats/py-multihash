@@ -4,9 +4,9 @@
 
 from binascii import hexlify
 
-import base58
 import pytest
 
+import multihash.base58 as base58
 from multihash import (
     coerce_code,
     decode,
