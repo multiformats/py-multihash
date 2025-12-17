@@ -8,12 +8,11 @@ version = "2.0.0"
 description = "Multihash implementation in Python"
 readme = "README.rst"
 authors = [{ name = "Dhruv Baldawa", email = "dhruv@dhruvb.com" }]
-license = { text = "MIT" }
+license = "MIT"
 keywords = ["multihash"]
 classifiers = [
     "Development Status :: 2 - Pre-Alpha",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
     "Natural Language :: English",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
