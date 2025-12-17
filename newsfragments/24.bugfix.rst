@@ -1,1 +1,0 @@
-Added type annotations for ``Multihash`` namedtuple fields (``code``, ``name``, ``length``, ``digest``) to fix static type checker errors.

@@ -1,1 +1,0 @@
-Removed codecov integration and badge from project documentation.
