@@ -8,12 +8,11 @@ version = "2.0.0"
 description = "Multihash implementation in Python"
 readme = "README.rst"
 authors = [{ name = "Dhruv Baldawa", email = "dhruv@dhruvb.com" }]
-license = { text = "MIT" }
+license = "MIT"
 keywords = ["multihash"]
 classifiers = [
     "Development Status :: 2 - Pre-Alpha",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
     "Natural Language :: English",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
@@ -41,8 +40,6 @@ dev = [
     "Sphinx>=5.0.0",
     "build>=0.9.0",
     "bump-my-version>=1.2.0",
-    "codecov",
-    "coverage>=6.5.0",
     "mypy",
     "pre-commit",
     "pytest",
@@ -67,21 +64,6 @@ include = ["multihash*"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_classes = "*TestCase"
-
-[tool.coverage.run]
-source = ["multihash"]
-
-[tool.coverage.report]
-exclude_lines = [
-    "pragma: no cover",
-    "def __repr__",
-    "if self.debug:",
-    "if settings.DEBUG",
-    "raise AssertionError",
-    "raise NotImplementedError",
-    "if 0:",
-    "if __name__ == .__main__.:",
-]
 
 [tool.towncrier]
 # Read https://github.com/multiformats/py-multihash/blob/master/newsfragments/README.md for instructions

@@ -22,7 +22,6 @@ help:
 	@echo "lint - run pre-commit hooks on all files"
 	@echo "typecheck - run mypy type checking"
 	@echo "test - run tests quickly with the default Python"
-	@echo "coverage - run tests with coverage report"
 	@echo "docs-ci - generate docs for CI"
 	@echo "docs - generate docs and open in browser"
 	@echo "servedocs - serve docs with live reload"
@@ -48,7 +47,6 @@ clean-test:
 	rm -fr .tox/
 	rm -fr .mypy_cache
 	rm -fr .ruff_cache
-	rm -f .coverage
 	rm -fr htmlcov/
 
 setup:
@@ -65,12 +63,6 @@ typecheck:
 
 test:
 	python -m pytest tests
-
-coverage:
-	coverage run --source multihash -m pytest tests
-	coverage report -m
-	coverage html
-	$(BROWSER) htmlcov/index.html
 
 docs-ci:
 	rm -f docs/multihash.rst
@@ -138,8 +130,8 @@ ifndef bump
 endif
 
 check-git:
-	# require that upstream is configured for libp2p/py-libp2p
-	@if ! git remote -v | grep "upstream[[:space:]]git@github.com:libp2p/py-libp2p.git (push)\|upstream[[:space:]]https://github.com/libp2p/py-libp2p (push)"; then \
-		echo "Error: You must have a remote named 'upstream' that points to 'py-libp2p'"; \
+	# require that upstream is configured for multiformats/py-multihash
+	@if ! git remote -v | grep "upstream[[:space:]]git@github.com:multiformats/py-multihash.git (push)\|upstream[[:space:]]https://github.com/multiformats/py-multihash (push)"; then \
+		echo "Error: You must have a remote named 'upstream' that points to 'py-multihash'"; \
 		exit 1; \
 	fi
