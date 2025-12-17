@@ -38,6 +38,12 @@ extensions = [
     'sphinx.ext.doctest',
 ]
 
+# Doctest configuration
+doctest_global_setup = """
+from multihash import Multihash, MultihashSet, from_json, sum, digest
+from multihash.funcs import Func, Blake3Hash, Murmur3_128Hash, Murmur3_32Hash, DoubleSHA256Hash
+"""
+
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
 
