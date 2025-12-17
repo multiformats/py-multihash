@@ -1,0 +1,1 @@
+Copied ``base58`` code directly into ``py-multihash`` to avoid dependency issues.
