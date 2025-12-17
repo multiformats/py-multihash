@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "py-multihash"
-version = "2.0.0"
+version = "3.0.0"
 description = "Multihash implementation in Python"
 readme = "README.rst"
 authors = [{ name = "Dhruv Baldawa", email = "dhruv@dhruvb.com" }]
@@ -33,7 +33,7 @@ dependencies = [
 
 [project.urls]
 Homepage = "https://github.com/multiformats/multihash"
-Download = "https://github.com/multiformats/multihash/tarball/2.0.0"
+Download = "https://github.com/multiformats/multihash/tarball/3.0.0"
 
 [project.optional-dependencies]
 dev = [
@@ -121,7 +121,7 @@ name = "Removals"
 showcontent = true
 
 [tool.bumpversion]
-current_version = "2.0.0"
+current_version = "3.0.0"
 parse = """
     (?P<major>\\d+)
     \\.(?P<minor>\\d+)

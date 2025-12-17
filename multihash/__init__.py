@@ -2,7 +2,7 @@
 
 __author__ = """Dhruv Baldawa"""
 __email__ = "dhruv@dhruvb.com"
-__version__ = "2.0.0"
+__version__ = "3.0.0"
 
 from .exceptions import (
     HashComputationError,
