@@ -4,6 +4,14 @@ multihash package
 Submodules
 ----------
 
+multihash.base58 module
+-----------------------
+
+.. automodule:: multihash.base58
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
 multihash.constants module
 --------------------------
 
