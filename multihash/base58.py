@@ -3,11 +3,11 @@
 Implementations of Base58 and Base58Check encodings that are compatible
 with the bitcoin network.
 
-This file was copied over and added to the bip32 project from David Keijser's
-https://github.com/keis/base58 (https://pypi.org/project/base58/). This
-package is released under an MIT licensed. The code was copied in this file and left
-untouched except for formatting. Here is a copy of the MIT license accompanying the
-code:
+This file was copied from David Keijser's base58 library
+(https://github.com/keis/base58, https://pypi.org/project/base58/) and added to
+py-multihash to avoid dependency issues. The original package is released under an MIT
+license. The code was copied in this file and left untouched except for formatting.
+Here is a copy of the MIT license accompanying the code:
 
     Copyright (c) 2015 David Keijser
 
@@ -108,13 +108,13 @@ def b58decode_int(v: str | bytes, alphabet: bytes = BITCOIN_ALPHABET, *, autofix
         v = v.rstrip()
     v = scrub_input(v)
 
-    map = _get_base58_decode_map(alphabet, autofix=autofix)
+    decode_map = _get_base58_decode_map(alphabet, autofix=autofix)
 
     decimal = 0
     base = len(alphabet)
     try:
         for char in v:
-            decimal = decimal * base + map[char]
+            decimal = decimal * base + decode_map[char]
     except KeyError as e:
         raise ValueError(f"Invalid character {chr(e.args[0])!r}") from None
     return decimal
