@@ -1,0 +1,1 @@
+Removed unused legacy dependencies ``six`` and ``morphys`` from runtime dependencies.
