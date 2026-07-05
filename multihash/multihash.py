@@ -750,7 +750,7 @@ def decode(multihash):
     :raises ValueError: if the length is not same as the digest
     """
     if not isinstance(multihash, bytes):
-        raise TypeError("multihash should be bytes, not {}", type(multihash))
+        raise TypeError(f"multihash should be bytes, not {type(multihash)}")
 
     if len(multihash) < 3:
         raise ValueError("multihash must be greater than 3 bytes.")
