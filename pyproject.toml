@@ -71,6 +71,7 @@ addopts = "-m 'not benchmark'"
 markers = [
     "benchmark: performance benchmarks (excluded from default test runs)",
 ]
+norecursedirs = ["spec"]
 
 [tool.towncrier]
 # Read https://github.com/multiformats/py-multihash/blob/master/newsfragments/README.md for instructions
@@ -198,3 +199,6 @@ project_excludes = [
     "dist/**",
     "tests/**",
 ]
+
+[tool.ruff]
+extend-exclude = ["spec/", "spec/**/*"]
