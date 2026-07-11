@@ -38,8 +38,8 @@ def _resolve_shake_length(func: Func | int, length: int | None) -> int:
 class Multihash(namedtuple("Multihash", "code,name,length,digest")):
     """A named tuple representing a multihash function and digest.
 
-    This extends the base namedtuple with additional methods for encoding,
-    verification, and compatibility with both py-multihash and pymultihash APIs.
+    This extends the base namedtuple with additional methods for encoding
+    and verification.
     """
 
     # Type annotations for namedtuple fields (for static type checkers)
