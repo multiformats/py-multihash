@@ -9,7 +9,7 @@ def test_spec_table_completeness():
     """Every multihash entry in table.csv should be in HASH_CODES and Func."""
     spec_path = os.path.join(os.path.dirname(__file__), "..", "spec", "multicodec", "table.csv")
 
-    with open(spec_path, "r") as f:
+    with open(spec_path) as f:
         reader = csv.DictReader(f, skipinitialspace=True)
         for row in reader:
             if row["tag"].strip() != "multihash":
