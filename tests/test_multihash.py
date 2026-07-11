@@ -328,3 +328,19 @@ class GetPrefixTestCase:
         """get_prefix: raises ValueError for invalid cases"""
         with pytest.raises(ValueError):
             get_prefix(b"foobar")
+
+    def test_get_prefix_multi_byte_code(self):
+        """get_prefix: correctly parses multi-byte varints"""
+        from multihash.funcs import Func
+        from multihash.multihash import sum as mh_sum
+
+        # sha2_224 code is 0x1013, which takes 2 bytes for the varint.
+        # Length 28 takes 1 byte. Total prefix = 3 bytes.
+        mh = mh_sum(b"test", Func.sha2_224)
+        prefix = get_prefix(mh.encode())
+        assert prefix == mh.encode()[:3]
+
+    def test_get_prefix_type_error(self):
+        """get_prefix: raises TypeError when not passed bytes"""
+        with pytest.raises(TypeError):
+            get_prefix("not bytes")
