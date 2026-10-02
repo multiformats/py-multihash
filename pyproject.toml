@@ -33,12 +33,16 @@ Homepage = "https://github.com/multiformats/multihash"
 Download = "https://github.com/multiformats/multihash/tarball/3.0.0"
 
 [project.optional-dependencies]
+keccak = [
+    "pycryptodome>=3.0,<4.0",
+]
 dev = [
     "Sphinx>=5.0.0",
     "build>=0.9.0",
     "bump-my-version>=1.2.0",
     "mypy",
     "pre-commit",
+    "pycryptodome>=3.0,<4.0",
     "pytest",
     "pytest-cov",
     "pytest-runner",

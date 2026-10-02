@@ -251,6 +251,42 @@ class ShakeHash:
         return c
 
 
+def _create_keccak_hash(digest_bits: int):
+    """Create a hashlib-compatible Keccak wrapper for the given digest bit length."""
+    try:
+        from Crypto.Hash import keccak as _keccak_mod
+    except ImportError:
+        return None
+
+    class KeccakHash:
+        name = f"keccak-{digest_bits}"
+        digest_size = digest_bits // 8
+        block_size = 200 - 2 * (digest_bits // 8)
+
+        def __init__(self) -> None:
+            self._digest_bits = digest_bits
+            self._data = bytearray()
+            self._hasher = _keccak_mod.new(digest_bits=digest_bits)
+
+        def update(self, data: bytes) -> None:
+            self._data.extend(data)
+            self._hasher.update(data)
+
+        def digest(self) -> bytes:
+            return self._hasher.digest()
+
+        def hexdigest(self) -> str:
+            return self._hasher.hexdigest()
+
+        def copy(self) -> "KeccakHash":
+            c = KeccakHash()
+            if self._data:
+                c.update(bytes(self._data))
+            return c
+
+    return KeccakHash
+
+
 class Blake3Hash:
     """hashlib-compatible wrapper for Blake3 using official blake3 library.
 
@@ -577,6 +613,11 @@ class FuncReg(metaclass=_FuncRegMeta):
         (Func.sha2_512_224, "sha512_224", getattr(hashlib, "sha512_224", None)),
         (Func.sha2_512_256, "sha512_256", getattr(hashlib, "sha512_256", None)),
         # Blake3 registered via register_variable_size in reset()
+        # Legacy Keccak (distinct from NIST SHA3) — requires pycryptodome
+        (Func.keccak_224, "keccak-224", _create_keccak_hash(224)),
+        (Func.keccak_256, "keccak-256", _create_keccak_hash(256)),
+        (Func.keccak_384, "keccak-384", _create_keccak_hash(384)),
+        (Func.keccak_512, "keccak-512", _create_keccak_hash(512)),
         # Murmur3 variants (using official mmh3 library)
         (Func.murmur3_128, "murmur3-128", Murmur3_128Hash),
         (Func.murmur3_32, "murmur3-32", Murmur3_32Hash),

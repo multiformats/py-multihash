@@ -121,6 +121,26 @@ class NewHashFunctionsTestCase:
         with pytest.raises(HashComputationError):
             digest(data, Func.blake3, length=129)
 
+    def test_keccak_available(self):
+        """Legacy Keccak hashes register when pycryptodome is installed."""
+        pytest.importorskip("Crypto.Hash.keccak")
+        from Crypto.Hash import keccak
+
+        mh = digest(b"hello", Func.keccak_256)
+        assert mh.code == Func.keccak_256
+        assert len(mh.digest) == 32
+        expected = keccak.new(digest_bits=256)
+        expected.update(b"hello")
+        assert mh.digest == expected.digest()
+
+        for func, bits in (
+            (Func.keccak_224, 224),
+            (Func.keccak_384, 384),
+            (Func.keccak_512, 512),
+        ):
+            mh_v = digest(b"hello", func)
+            assert len(mh_v.digest) == bits // 8
+
     def test_murmur3_128_available(self):
         """Test that MurmurHash3-128 is available and works."""
         assert hasattr(Func, "murmur3_128")
