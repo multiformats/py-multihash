@@ -1,0 +1,1 @@
+Reject identity multihashes when a truncation ``length`` is provided that does not equal the input data length, matching go-multihash behavior.

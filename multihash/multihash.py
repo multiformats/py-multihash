@@ -593,6 +593,11 @@ def _do_digest(data, func, length: int | None = None):
             raise TruncationError(f"truncation length must be non-negative, got {length}")
         if length == 0:
             raise TruncationError("truncation length cannot be zero")
+        if func == Func.identity and length != len(digest_bytes):
+            raise TruncationError(
+                f"the length of the identity hash ({length}) must be equal "
+                f"to the length of the data ({len(digest_bytes)})"
+            )
         if length > len(digest_bytes):
             raise TruncationError(f"truncation length {length} exceeds digest size {len(digest_bytes)}")
         digest_bytes = digest_bytes[:length]
@@ -935,6 +940,11 @@ def sum_stream(
             raise TruncationError(f"truncation length must be non-negative, got {length}")
         if length == 0:
             raise TruncationError("truncation length cannot be zero")
+        if func == Func.identity and length != len(digest_bytes):
+            raise TruncationError(
+                f"the length of the identity hash ({length}) must be equal "
+                f"to the length of the data ({len(digest_bytes)})"
+            )
         if length > len(digest_bytes):
             raise TruncationError(f"truncation length {length} exceeds digest size {len(digest_bytes)}")
         digest_bytes = digest_bytes[:length]

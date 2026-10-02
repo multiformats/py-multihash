@@ -151,6 +151,19 @@ class TestTruncationTestCase:
         assert mh.verify(b"hello") is True
         assert mh.verify(b"world") is False
 
+    def test_identity_hash_length_must_match(self):
+        """Identity hash length must equal data length when length is set."""
+        mh = sum(b"hello", Func.identity, length=5)
+        assert mh.digest == b"hello"
+
+        with pytest.raises(TruncationError, match="identity hash"):
+            sum(b"hello", Func.identity, length=3)
+
+    def test_identity_hash_length_must_match_sum_stream(self):
+        """sum_stream rejects mismatched identity truncation length."""
+        with pytest.raises(TruncationError, match="identity hash"):
+            sum_stream(BytesIO(b"hello"), Func.identity, length=3)
+
 
 class TestShakeFunctionsTestCase:
     """Tests for SHAKE variable-length hash functions."""
