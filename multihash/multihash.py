@@ -19,19 +19,18 @@ from multihash.funcs import Func, FuncReg, _is_app_specific_func
 from . import base58
 
 
-def _resolve_shake_length(func: Func | int, length: int | None) -> int:
-    """Resolve SHAKE hash output length.
+def _resolve_variable_length(func: Func | int, length: int | None) -> int:
+    """Resolve output length for a variable-size hash function.
 
     Args:
-        func: SHAKE function (shake_128 or shake_256)
+        func: Variable-size hash function code
         length: Requested length (None or -1 for default)
 
     Returns:
         Resolved length in bytes
     """
     if length is None or length == -1:
-        # Default length for SHAKE-128 is 32, SHAKE-256 is 64
-        return 32 if func == Func.shake_128 else 64
+        return FuncReg.default_lengths[int(func)]
     return length
 
 
@@ -669,12 +668,12 @@ def _do_digest(data, func, length: int | None = None):
         TruncationError: If truncation length is invalid
     """
     func = FuncReg.get(func)
-    is_shake = func in (Func.shake_128, Func.shake_256)
+    is_variable = FuncReg.is_variable_size(func)
 
-    # Handle SHAKE functions which require length
-    if is_shake:
-        shake_length = _resolve_shake_length(func, length)
-        hash_obj = FuncReg.hash_from_func(func, length=shake_length)
+    # Handle variable-size functions which require a length hint
+    if is_variable:
+        resolved_length = _resolve_variable_length(func, length)
+        hash_obj = FuncReg.hash_from_func(func, length=resolved_length)
     else:
         hash_obj = FuncReg.hash_from_func(func)
 
@@ -684,8 +683,8 @@ def _do_digest(data, func, length: int | None = None):
     hash_obj.update(data)
     digest_bytes = bytes(hash_obj.digest())
 
-    # Handle truncation (but not for SHAKE, as they already produce the right length)
-    if not is_shake and length is not None and length != -1:
+    # Handle truncation (but not for variable-size digests that already match length)
+    if not is_variable and length is not None and length != -1:
         if length < 0:
             raise TruncationError(f"truncation length must be non-negative, got {length}")
         if length == 0:
@@ -1057,12 +1056,12 @@ def sum_stream(
         raise ValueError(f"chunk_size must be positive, got {chunk_size}")
 
     func = FuncReg.get(code)
-    is_shake = func in (Func.shake_128, Func.shake_256)
+    is_variable = FuncReg.is_variable_size(func)
 
-    # Handle SHAKE functions which require length
-    if is_shake:
-        shake_length = _resolve_shake_length(func, length)
-        hash_obj = FuncReg.hash_from_func(func, length=shake_length)
+    # Handle variable-size functions which require a length hint
+    if is_variable:
+        resolved_length = _resolve_variable_length(func, length)
+        hash_obj = FuncReg.hash_from_func(func, length=resolved_length)
     else:
         hash_obj = FuncReg.hash_from_func(func)
 
@@ -1078,8 +1077,8 @@ def sum_stream(
 
     digest_bytes = bytes(hash_obj.digest())
 
-    # Handle truncation (but not for SHAKE, as they already produce the right length)
-    if not is_shake and length is not None and length != -1:
+    # Handle truncation (but not for variable-size digests that already match length)
+    if not is_variable and length is not None and length != -1:
         if length < 0:
             raise TruncationError(f"truncation length must be non-negative, got {length}")
         if length == 0:
