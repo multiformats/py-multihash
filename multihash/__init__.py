@@ -13,8 +13,11 @@ from .exceptions import (
 )
 from .funcs import Func, FuncReg, IdentityHash, ShakeHash
 from .multihash import (
+    Cast,
+    MHFromBytes,
     Multihash,
     MultihashSet,
+    cast,
     coerce_code,
     decode,
     digest,
@@ -26,6 +29,7 @@ from .multihash import (
     is_app_code,
     is_valid,
     is_valid_code,
+    mh_from_bytes,
     sum,
     sum_stream,
     to_b58_string,
@@ -33,17 +37,20 @@ from .multihash import (
 )
 
 __all__ = [
+    "Cast",
     "Func",
     "FuncReg",
     "HashComputationError",
     "IdentityHash",
     "InvalidMultihashError",
+    "MHFromBytes",
     "Multihash",
     "MultihashError",
     "MultihashSet",
     "ShakeHash",
     "TruncationError",
     "UnsupportedCodeError",
+    "cast",
     "coerce_code",
     "decode",
     "digest",
@@ -55,6 +62,7 @@ __all__ = [
     "is_app_code",
     "is_valid",
     "is_valid_code",
+    "mh_from_bytes",
     "sum",
     "sum_stream",
     "to_b58_string",
