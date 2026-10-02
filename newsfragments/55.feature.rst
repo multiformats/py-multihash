@@ -1,0 +1,1 @@
+Add :meth:`FuncReg.register_variable_size` and :attr:`FuncReg.default_lengths` for variable-output hash registration (SHAKE now uses this path).

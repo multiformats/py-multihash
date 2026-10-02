@@ -205,3 +205,47 @@ class NewHashFunctionsTestCase:
         mh1 = digest(data, "murmur3-128")
         mh2 = digest(data, "murmur3-128")
         assert mh1.digest == mh2.digest
+
+
+class VariableSizeRegistryTestCase:
+    """Tests for FuncReg.register_variable_size and default_lengths."""
+
+    def test_shake_defaults_in_default_lengths(self):
+        assert FuncReg.default_lengths[Func.shake_128] == 32
+        assert FuncReg.default_lengths[Func.shake_256] == 64
+        assert FuncReg.is_variable_size(Func.shake_128) is True
+        assert FuncReg.is_variable_size(Func.sha2_256) is False
+
+    def test_fixed_hash_default_length(self):
+        assert FuncReg.default_lengths[Func.sha2_256] == 32
+
+    def test_register_variable_size_custom(self):
+        def factory(size_hint: int):
+            length = 16 if size_hint < 0 else size_hint
+            if length <= 0 or length > 32:
+                return None
+
+            class H:
+                name = "test-var"
+                digest_size = length
+
+                def __init__(self):
+                    self._data = b""
+
+                def update(self, data):
+                    self._data += data
+
+                def digest(self):
+                    return (self._data + b"\x00" * length)[:length]
+
+            return H()
+
+        code = 0x07
+        try:
+            FuncReg.register_variable_size(code, "test-var", factory, "test-var")
+            assert FuncReg.default_lengths[code] == 16
+            assert FuncReg.is_variable_size(code) is True
+            h = FuncReg.hash_from_func(code, length=8)
+            assert h.digest_size == 8
+        finally:
+            FuncReg.unregister(code)
