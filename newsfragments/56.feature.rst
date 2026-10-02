@@ -1,0 +1,1 @@
+Add :func:`~multihash.cast` and :func:`~multihash.mh_from_bytes` for go-multihash ``Cast`` / ``MHFromBytes`` parity.

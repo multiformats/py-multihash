@@ -825,6 +825,53 @@ def decode(multihash):
     return Multihash(code=code, name=constants.CODE_HASHES.get(code, code), length=length, digest=buf)
 
 
+def cast(buf: bytes) -> Multihash:
+    """Validate ``buf`` as a multihash and return a :class:`Multihash`.
+
+    This is the Python equivalent of go-multihash ``Cast``: the entire buffer
+    must be a valid multihash (no trailing data).
+
+    Args:
+        buf: Raw multihash bytes
+
+    Returns:
+        Multihash: Decoded multihash
+
+    Raises:
+        TypeError: If ``buf`` is not bytes
+        ValueError: If ``buf`` is not a valid multihash
+    """
+    return decode(buf)
+
+
+Cast = cast
+
+
+def mh_from_bytes(buf: bytes) -> tuple[int, Multihash]:
+    """Read a multihash from the start of ``buf``, allowing trailing data.
+
+    This is the Python equivalent of go-multihash ``MHFromBytes``.
+
+    Args:
+        buf: Buffer that begins with a multihash (may contain trailing bytes)
+
+    Returns:
+        Tuple of ``(bytes_consumed, Multihash)``
+
+    Raises:
+        TypeError: If ``buf`` is not bytes
+        ValueError: If the leading bytes are not a valid multihash
+    """
+    if not isinstance(buf, bytes):
+        raise TypeError(f"buf should be bytes, not {type(buf)}")
+    stream = BytesIO(buf)
+    mh = Multihash.read(stream)
+    return stream.tell(), mh
+
+
+MHFromBytes = mh_from_bytes
+
+
 def encode(digest, code, length=None):
     """
     Encode a hash digest along with the specified function code

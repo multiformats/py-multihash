@@ -16,9 +16,11 @@ from multihash import (
     MultihashSet,
     ShakeHash,
     TruncationError,
+    cast,
     decode,
     digest,
     from_json,
+    mh_from_bytes,
     sum,
     sum_stream,
 )
@@ -919,3 +921,43 @@ class TestStreamReadWriteTestCase:
         finally:
             # Clean up
             FuncReg.unregister(app_code)
+
+
+class TestCastAndMhFromBytesTestCase:
+    """Tests for cast() and mh_from_bytes()."""
+
+    def test_cast_valid(self):
+        mh = sum(b"hello", Func.sha2_256)
+        encoded = mh.encode()
+        casted = cast(encoded)
+        assert casted == decode(encoded)
+        assert casted.digest == mh.digest
+
+    def test_cast_rejects_trailing_data(self):
+        mh = sum(b"hello", Func.sha2_256)
+        with pytest.raises(ValueError):
+            cast(mh.encode() + b"extra")
+
+    def test_mh_from_bytes_with_trailing(self):
+        mh = sum(b"hello", Func.sha2_256)
+        encoded = mh.encode()
+        buf = encoded + b"trailing-bytes"
+        consumed, parsed = mh_from_bytes(buf)
+        assert consumed == len(encoded)
+        assert parsed.digest == mh.digest
+        assert parsed.code == mh.code
+
+    def test_mh_from_bytes_exact(self):
+        mh = sum(b"hello", Func.sha2_256)
+        encoded = mh.encode()
+        consumed, parsed = mh_from_bytes(encoded)
+        assert consumed == len(encoded)
+        assert parsed == decode(encoded)
+
+    def test_go_aliases(self):
+        from multihash import Cast, MHFromBytes
+
+        mh = sum(b"hello", Func.sha2_256)
+        encoded = mh.encode()
+        assert Cast(encoded) == cast(encoded)
+        assert MHFromBytes(encoded) == mh_from_bytes(encoded)
