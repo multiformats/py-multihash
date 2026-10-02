@@ -1,0 +1,1 @@
+Add ``Visit``/``visit`` and ``ForEach``/``for_each`` methods to :class:`~multihash.MultihashSet` for go-multihash parity.
