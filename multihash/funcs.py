@@ -254,8 +254,7 @@ class ShakeHash:
 class Blake3Hash:
     """hashlib-compatible wrapper for Blake3 using official blake3 library.
 
-    BLAKE3 is a cryptographic hash function that is much faster than MD5, SHA-1, SHA-2,
-    and SHA-3, yet is just as secure as the latest standard SHA-3.
+    BLAKE3 supports variable-length output up to 128 bytes (default 32).
 
     Example:
         >>> from multihash import digest
@@ -270,28 +269,32 @@ class Blake3Hash:
         '...'
     """
 
+    MAX_SIZE = 128
     name: str = "blake3"
-    digest_size: int = 32
     block_size: int = 64
 
-    def __init__(self) -> None:
+    def __init__(self, length: int = 32) -> None:
+        if length <= 0 or length > self.MAX_SIZE:
+            raise ValueError(f"blake3 length must be 1..{self.MAX_SIZE}, got {length}")
         self._hasher = blake3.blake3()
+        self._length = length
+        self.digest_size = length
 
     def update(self, data: bytes) -> None:
         """Update the hash with data."""
         self._hasher.update(data)
 
     def digest(self) -> bytes:
-        """Return digest."""
-        return self._hasher.digest()
+        """Return digest of the configured length."""
+        return self._hasher.digest(self._length)
 
     def hexdigest(self) -> str:
         """Return hex digest."""
-        return self._hasher.hexdigest()
+        return self.digest().hex()
 
     def copy(self) -> "Blake3Hash":
         """Create a copy of the hash state."""
-        c = Blake3Hash()
+        c = Blake3Hash(self._length)
         c._hasher = self._hasher.copy()
         return c
 
@@ -573,8 +576,7 @@ class FuncReg(metaclass=_FuncRegMeta):
         # SHA2-512 truncated variants (Python 3.6+)
         (Func.sha2_512_224, "sha512_224", getattr(hashlib, "sha512_224", None)),
         (Func.sha2_512_256, "sha512_256", getattr(hashlib, "sha512_256", None)),
-        # Blake3 (using official blake3 library)
-        (Func.blake3, "blake3", Blake3Hash),
+        # Blake3 registered via register_variable_size in reset()
         # Murmur3 variants (using official mmh3 library)
         (Func.murmur3_128, "murmur3-128", Murmur3_128Hash),
         (Func.murmur3_32, "murmur3-32", Murmur3_32Hash),
@@ -676,6 +678,14 @@ class FuncReg(metaclass=_FuncRegMeta):
 
         cls.register_variable_size(Func.shake_128, "shake_128", shake_128_factory, "shake_128")
         cls.register_variable_size(Func.shake_256, "shake_256", shake_256_factory, "shake_256")
+
+        def blake3_factory(size_hint: int):
+            length = 32 if size_hint < 0 else size_hint
+            if length <= 0 or length > Blake3Hash.MAX_SIZE:
+                return None
+            return Blake3Hash(length)
+
+        cls.register_variable_size(Func.blake3, "blake3", blake3_factory, "blake3")
 
     @classmethod
     def get(cls, func_hint: Func | str | int) -> Func | int:
