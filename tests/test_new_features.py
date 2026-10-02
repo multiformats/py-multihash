@@ -961,3 +961,29 @@ class TestCastAndMhFromBytesTestCase:
         encoded = mh.encode()
         assert Cast(encoded) == cast(encoded)
         assert MHFromBytes(encoded) == mh_from_bytes(encoded)
+
+
+class TestMultihashReaderWriterTestCase:
+    """Tests for MultihashReader / MultihashWriter wrappers."""
+
+    def test_writer_reader_roundtrip(self):
+        from multihash import new_reader, new_writer
+
+        mh1 = sum(b"one", Func.sha2_256)
+        mh2 = sum(b"two", Func.sha2_256)
+        stream = BytesIO()
+        writer = new_writer(stream)
+        writer.write_multihash(mh1)
+        writer.WriteMultihash(mh2)
+
+        stream.seek(0)
+        reader = new_reader(stream)
+        assert reader.read_multihash() == mh1
+        assert reader.ReadMultihash() == mh2
+
+    def test_new_reader_writer_aliases(self):
+        from multihash import NewReader, NewWriter
+
+        stream = BytesIO()
+        assert type(NewWriter(stream)).__name__ == "MultihashWriter"
+        assert type(NewReader(stream)).__name__ == "MultihashReader"

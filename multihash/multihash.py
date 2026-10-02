@@ -301,6 +301,60 @@ class Multihash(namedtuple("Multihash", "code,name,length,digest")):
             raise OSError(f"Failed to write multihash to stream: {e}") from e
 
 
+class MultihashReader:
+    """Wraps a binary stream with ReadMultihash capability (go-multihash NewReader)."""
+
+    def __init__(self, stream: BinaryIO):
+        self._stream = stream
+
+    def read(self, size: int = -1) -> bytes:
+        """Read raw bytes from the underlying stream."""
+        return self._stream.read(size)
+
+    def ReadMultihash(self) -> Multihash:
+        """Read one multihash from the stream (Go-style API)."""
+        return Multihash.read(self._stream)
+
+    def read_multihash(self) -> Multihash:
+        """Read one multihash from the stream (Python-style API)."""
+        return self.ReadMultihash()
+
+
+class MultihashWriter:
+    """Wraps a binary stream with WriteMultihash capability (go-multihash NewWriter)."""
+
+    def __init__(self, stream: BinaryIO):
+        self._stream = stream
+
+    def write(self, buf: bytes) -> int:
+        """Write raw bytes to the underlying stream."""
+        return self._stream.write(buf)
+
+    def WriteMultihash(self, mh: Multihash) -> int:
+        """Write one multihash to the stream (Go-style API)."""
+        if not isinstance(mh, Multihash):
+            raise TypeError(f"expected Multihash, got {type(mh)}")
+        return mh.write(self._stream)
+
+    def write_multihash(self, mh: Multihash) -> int:
+        """Write one multihash to the stream (Python-style API)."""
+        return self.WriteMultihash(mh)
+
+
+def new_reader(stream: BinaryIO) -> MultihashReader:
+    """Create a :class:`MultihashReader` wrapping ``stream``."""
+    return MultihashReader(stream)
+
+
+def new_writer(stream: BinaryIO) -> MultihashWriter:
+    """Create a :class:`MultihashWriter` wrapping ``stream``."""
+    return MultihashWriter(stream)
+
+
+NewReader = new_reader
+NewWriter = new_writer
+
+
 class MultihashSet:
     """A specialized collection for managing unique Multihash values.
 

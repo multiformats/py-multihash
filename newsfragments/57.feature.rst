@@ -1,0 +1,1 @@
+Add :class:`~multihash.MultihashReader` and :class:`~multihash.MultihashWriter` stream wrappers (``new_reader`` / ``new_writer``) matching go-multihash ``NewReader`` / ``NewWriter``.
