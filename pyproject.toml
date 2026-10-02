@@ -61,6 +61,7 @@ include = ["multihash*"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_classes = "*TestCase"
+norecursedirs = ["spec"]
 
 [tool.towncrier]
 # Read https://github.com/multiformats/py-multihash/blob/master/newsfragments/README.md for instructions
@@ -171,3 +172,6 @@ warn_redundant_casts = false
 warn_return_any = false
 warn_unused_configs = true
 warn_unused_ignores = false
+
+[tool.ruff]
+extend-exclude = ["spec/", "spec/**/*"]

@@ -56,7 +56,7 @@ lint:
 	pre-commit run --all-files
 
 fix:
-	python -m ruff check --fix
+	python -m ruff check --fix --exclude spec
 
 typecheck:
 	pre-commit run mypy-local --all-files

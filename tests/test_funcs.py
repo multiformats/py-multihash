@@ -15,7 +15,7 @@ class FuncTestCase:
 
     def test_values_match_constants(self):
         assert Func.sha2_256 == HASH_CODES["sha2-256"]
-        assert Func.identity == HASH_CODES["id"]
+        assert Func.identity == HASH_CODES["identity"]
 
     def test_is_int_enum(self):
         assert isinstance(Func.sha2_256, int)
