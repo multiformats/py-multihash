@@ -821,13 +821,15 @@ class FuncReg(metaclass=_FuncRegMeta):
 
         Args:
             func: Hash function code or Func enum
-            length: Optional output length for variable-size hashes.
-                For variable-size functions, ``None`` returns ``None`` (caller
-                must supply a length or use ``-1`` for the default). ``-1``
-                requests the default length from :attr:`default_lengths`.
+            length: Optional output length for variable-size hashes
 
         Returns:
             Hash object or None if not available
+
+        Note:
+            For variable-size functions, ``None`` returns ``None`` (caller must
+            supply a length or use ``-1`` for the default). ``-1`` requests the
+            default length from :attr:`default_lengths`.
         """
         code = int(func)
         if code in cls._variable_factories:
