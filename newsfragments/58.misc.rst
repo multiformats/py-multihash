@@ -1,0 +1,1 @@
+Add ``version.json`` so the package version is published in the same format used by go-multihash, and wire it into the bumpversion release process.
