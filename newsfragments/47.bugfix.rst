@@ -1,0 +1,1 @@
+Fix broken format string in :func:`multihash.decode` that caused the ``TypeError`` raised for non-bytes input to display a literal ``{}`` instead of the actual type. The error message now correctly interpolates the offending type (e.g. ``"<class 'str'>"``).

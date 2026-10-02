@@ -233,6 +233,27 @@ class DecodeTestCase:
             decode(value)
         assert "should be bytes" in str(excinfo.value)
 
+    def test_decode_type_error_message_interpolates_type(self):
+        """decode: TypeError message must include the actual type, not a literal {}
+
+        Regression test for issue #47: the previous code used
+        ``TypeError("multihash should be bytes, not {}", type(multihash))`` without
+        an ``f`` prefix, so the ``{}`` placeholder was rendered literally and the
+        user saw ``"multihash should be bytes, not {}"`` instead of the offending
+        type.
+        """
+        with pytest.raises(TypeError) as excinfo:
+            decode("not bytes")
+        message = str(excinfo.value)
+        assert "should be bytes, not" in message
+        assert "{}" not in message
+        assert "<class 'str'>" in message
+
+        with pytest.raises(TypeError) as excinfo:
+            decode(["a", "b"])
+        assert "{}" not in str(excinfo.value)
+        assert "<class 'list'>" in str(excinfo.value)
+
     @pytest.mark.parametrize("value", (b"", b"a", b"aa"))
     def test_decode_less_length(self, value):
         """decode: raises ValueError if the length is less than 3"""
