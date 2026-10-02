@@ -44,6 +44,7 @@ dev = [
     "pre-commit",
     "pycryptodome>=3.0,<4.0",
     "pytest",
+    "pytest-benchmark",
     "pytest-cov",
     "pytest-runner",
     "ruff",
@@ -65,6 +66,10 @@ include = ["multihash*"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_classes = "*TestCase"
+addopts = "-m 'not benchmark'"
+markers = [
+    "benchmark: performance benchmarks (excluded from default test runs)",
+]
 
 [tool.towncrier]
 # Read https://github.com/multiformats/py-multihash/blob/master/newsfragments/README.md for instructions

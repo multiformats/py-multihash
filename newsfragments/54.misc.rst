@@ -1,0 +1,1 @@
+Add optional ``pytest-benchmark`` suite for ``sum`` / ``encode`` / ``decode`` (excluded from default CI via the ``benchmark`` marker).
