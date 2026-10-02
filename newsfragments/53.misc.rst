@@ -1,0 +1,1 @@
+Add official multihash spec vector tests validating :func:`~multihash.sum` against ``spec/multihash`` test cases.
