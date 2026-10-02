@@ -14,7 +14,7 @@ from multihash.exceptions import (
     HashComputationError,
     TruncationError,
 )
-from multihash.funcs import Func, FuncReg, _is_app_specific_func
+from multihash.funcs import Func, FuncReg
 
 from . import base58
 
@@ -38,8 +38,8 @@ def _resolve_shake_length(func: Func | int, length: int | None) -> int:
 class Multihash(namedtuple("Multihash", "code,name,length,digest")):
     """A named tuple representing a multihash function and digest.
 
-    This extends the base namedtuple with additional methods for encoding,
-    verification, and compatibility with both py-multihash and pymultihash APIs.
+    This extends the base namedtuple with additional methods for encoding
+    and verification.
     """
 
     # Type annotations for namedtuple fields (for static type checkers)
@@ -49,58 +49,6 @@ class Multihash(namedtuple("Multihash", "code,name,length,digest")):
     digest: bytes
 
     __slots__ = ()
-
-    def __new__(cls, code=None, name=None, length=None, digest=None, func=None):
-        """Create a new Multihash instance.
-
-        Supports both py-multihash style (code, name, length, digest) and
-        pymultihash style (func, digest) constructors.
-
-        Args:
-            code: The hash function code (int)
-            name: The hash function name (str)
-            length: The digest length (int)
-            digest: The raw digest bytes
-            func: Alternative way to specify the hash function (Func enum, str, or int)
-        """
-        # Handle pymultihash-style construction: Multihash(func, digest)
-        if func is not None or (
-            code is not None
-            and name is None
-            and length is None
-            and digest is None
-            and isinstance(code, (Func, str, int))
-        ):
-            # pymultihash style: Multihash(func, digest) or Multihash(code, digest_bytes)
-            if func is not None:
-                _func = func
-                _digest = digest if digest is not None else (name if isinstance(name, bytes) else b"")
-            else:
-                _func = code
-                _digest = name if isinstance(name, bytes) else b""
-
-            # Resolve the function
-            try:
-                resolved_func = FuncReg.get(_func)
-            except KeyError:
-                if _is_app_specific_func(_func):
-                    resolved_func = int(_func)
-                else:
-                    raise
-
-            # Get code and name
-            if isinstance(resolved_func, Func):
-                _code = resolved_func.value
-                _name = constants.CODE_HASHES.get(_code, resolved_func.name)
-            else:
-                _code = resolved_func
-                _name = constants.CODE_HASHES.get(_code, _code)
-
-            _length = len(_digest)
-            return super().__new__(cls, _code, _name, _length, _digest)
-
-        # Standard py-multihash style construction
-        return super().__new__(cls, code, name, length, digest)
 
     @property
     def func(self):
@@ -622,7 +570,10 @@ def digest(data, func, length: int | None = None):
         >>> mh_truncated = digest(data, Func.sha2_256, length=16)
     """
     digest_bytes = _do_digest(data, func, length=length)
-    return Multihash(func=func, digest=digest_bytes)
+    func_obj = FuncReg.get(func)
+    code = func_obj.value if isinstance(func_obj, Func) else func_obj
+    name = constants.CODE_HASHES.get(code, func_obj.name if isinstance(func_obj, Func) else code)
+    return Multihash(code=code, name=name, length=len(digest_bytes), digest=digest_bytes)
 
 
 def to_hex_string(multihash):
@@ -939,4 +890,7 @@ def sum_stream(
             raise TruncationError(f"truncation length {length} exceeds digest size {len(digest_bytes)}")
         digest_bytes = digest_bytes[:length]
 
-    return Multihash(func=code, digest=digest_bytes)
+    func_obj = FuncReg.get(code)
+    _code = func_obj.value if isinstance(func_obj, Func) else func_obj
+    _name = constants.CODE_HASHES.get(_code, func_obj.name if isinstance(func_obj, Func) else _code)
+    return Multihash(code=_code, name=_name, length=len(digest_bytes), digest=digest_bytes)
