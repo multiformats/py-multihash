@@ -6,7 +6,7 @@ import hashlib
 
 import pytest
 
-from multihash import Func, FuncReg, IdentityHash, Multihash, digest
+from multihash import Func, FuncReg, HashComputationError, IdentityHash, Multihash, digest
 from multihash.constants import HASH_CODES
 
 
@@ -103,6 +103,23 @@ class NewHashFunctionsTestCase:
         mh = digest(b"hello world", "blake3")
         assert mh.code == Func.blake3
         assert len(mh.digest) == 32  # Blake3 default is 32 bytes
+
+    def test_blake3_variable_lengths(self):
+        """BLAKE3 supports variable output up to 128 bytes."""
+        import blake3 as blake3_mod
+
+        data = b"foo"
+        for length in (32, 64, 128):
+            mh = digest(data, Func.blake3, length=length)
+            assert len(mh.digest) == length
+            expected = blake3_mod.blake3(data).digest(length)
+            assert mh.digest == expected
+
+        assert FuncReg.is_variable_size(Func.blake3) is True
+        assert FuncReg.default_lengths[Func.blake3] == 32
+
+        with pytest.raises(HashComputationError):
+            digest(data, Func.blake3, length=129)
 
     def test_murmur3_128_available(self):
         """Test that MurmurHash3-128 is available and works."""
