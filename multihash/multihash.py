@@ -825,12 +825,18 @@ def get_prefix(multihash):
     :param bytes multihash: input multihash
     :return: multihash prefix
     :rtype: bytes
+    :raises TypeError: when multihash is not bytes
     :raises ValueError: when the multihash is invalid
     """
-    if is_valid(multihash):
-        return multihash[:2]
+    if not isinstance(multihash, bytes):
+        raise TypeError("multihash should be bytes")
+    if not is_valid(multihash):
+        raise ValueError("invalid multihash")
 
-    raise ValueError("invalid multihash")
+    buffer = BytesIO(multihash)
+    varint.decode_stream(buffer)  # Read code varint
+    varint.decode_stream(buffer)  # Read length varint
+    return multihash[: buffer.tell()]
 
 
 def sum(data: bytes, code: Func | str | int, length: int | None = None) -> Multihash:
