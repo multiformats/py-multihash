@@ -425,6 +425,49 @@ class MultihashSet:
         """
         return list(self._set)
 
+    def Visit(self, mh: Multihash) -> bool:
+        """Add mh if not present. Return True if it was added (Go-style API).
+
+        Args:
+            mh: Multihash object to visit/add
+
+        Returns:
+            True if mh was newly added, False if it was already present
+
+        Raises:
+            TypeError: If mh is not a Multihash object
+        """
+        if not isinstance(mh, Multihash):
+            raise TypeError(f"MultihashSet can only contain Multihash objects, got {type(mh)}")
+        if mh in self._set:
+            return False
+        self._set.add(mh)
+        return True
+
+    def visit(self, mh: Multihash) -> bool:
+        """Add mh if not present. Return True if it was added (Python-style API)."""
+        return self.Visit(mh)
+
+    def ForEach(self, func):
+        """Call ``func(mh)`` for each Multihash. Stop and return the error if raised.
+
+        Args:
+            func: Callable invoked with each Multihash in the set
+
+        Returns:
+            ``None`` on success, or the exception instance if ``func`` raises
+        """
+        for mh in self._set:
+            try:
+                func(mh)
+            except Exception as e:
+                return e
+        return None
+
+    def for_each(self, func):
+        """Call ``func(mh)`` for each Multihash (Python-style API)."""
+        return self.ForEach(func)
+
     def __len__(self) -> int:
         """Return the number of Multihash objects in the set.
 

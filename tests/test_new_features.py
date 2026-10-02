@@ -550,6 +550,27 @@ class TestMultihashSetTestCase:
         mh_set.Remove(mh1)
         assert mh_set.Has(mh1) is False
 
+    def test_visit(self):
+        """Test Visit/visit add-if-absent semantics."""
+        mh_set = MultihashSet()
+        mh1 = sum(b"file1", Func.sha2_256)
+        assert mh_set.visit(mh1) is True
+        assert mh_set.Visit(mh1) is False
+        assert len(mh_set) == 1
+
+    def test_for_each(self):
+        """Test ForEach/for_each iteration and error propagation."""
+        mh1 = sum(b"a", Func.sha2_256)
+        mh2 = sum(b"b", Func.sha2_256)
+        mh_set = MultihashSet([mh1, mh2])
+        collected = []
+        assert mh_set.for_each(lambda mh: collected.append(mh)) is None
+        assert len(collected) == 2
+
+        err = mh_set.ForEach(lambda mh: (_ for _ in ()).throw(ValueError("stop")))
+        assert isinstance(err, ValueError)
+        assert str(err) == "stop"
+
     def test_multihash_set_clear(self):
         """Test clearing MultihashSet."""
         mh1 = sum(b"file1", Func.sha2_256)
