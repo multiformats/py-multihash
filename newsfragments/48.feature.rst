@@ -1,0 +1,1 @@
+Register legacy Keccak-224/256/384/512 hash implementations (optional ``pycryptodome`` dependency), distinct from NIST SHA-3.
