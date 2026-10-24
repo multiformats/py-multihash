@@ -1,0 +1,1 @@
+Remove the legacy ``pymultihash`` compatibility APIs, including the ``Multihash(func, digest)`` constructor. ``Multihash`` now requires the canonical ``(code, name, length, digest)`` arguments.
