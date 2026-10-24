@@ -1,0 +1,1 @@
+Fix :func:`~multihash.get_prefix` to decode both the hash-code and digest-length varints instead of assuming a two-byte prefix, so prefixes are correct for hash codes above ``0x7F`` (such as ``sha2-224`` and ``blake2b-*``). ``get_prefix`` now also raises ``TypeError`` when passed a non-``bytes`` value.
