@@ -1,0 +1,1 @@
+Add missing multihash functions from the upstream ``multicodec`` table, including the full Skein-256/512/1024 families and KangarooTwelve, and add a spec compliance test that validates the supported hash codes against ``multicodec/table.csv``. The identity hash is now named ``identity`` (previously ``id``) to match the upstream table.
