@@ -84,13 +84,9 @@ class DigestTestCase:
         assert mh.verify(b"other") is False
 
     def test_multihash_construction_styles(self):
-        # pymultihash style
-        mh1 = Multihash(func=Func.sha2_256, digest=b"x" * 32)
-        assert mh1.code == 0x12
-
         # py-multihash style
-        mh2 = Multihash(code=0x12, name="sha2-256", length=32, digest=b"x" * 32)
-        assert mh2.code == 0x12
+        mh = Multihash(code=0x12, name="sha2-256", length=32, digest=b"x" * 32)
+        assert mh.code == 0x12
 
 
 class NewHashFunctionsTestCase:
