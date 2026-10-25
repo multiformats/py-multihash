@@ -1,0 +1,1 @@
+Bump locked ``certifi`` dependency to 2026.10.19 (updated CA bundle for development tooling).
