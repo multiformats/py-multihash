@@ -43,6 +43,7 @@ dev = [
     "mypy",
     "pre-commit",
     "pycryptodome>=3.0,<4.0",
+    "pyrefly==1.5.0",
     "pytest",
     "pytest-benchmark",
     "pytest-cov",
@@ -185,3 +186,15 @@ warn_redundant_casts = false
 warn_return_any = false
 warn_unused_configs = true
 warn_unused_ignores = false
+
+[tool.pyrefly]
+python_version = "3.10"
+project_includes = ["multihash"]
+project_excludes = [
+    "spec/**",
+    ".venv/**",
+    "docs/**",
+    "build/**",
+    "dist/**",
+    "tests/**",
+]
