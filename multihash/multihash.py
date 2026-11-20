@@ -973,7 +973,7 @@ def get_prefix(multihash):
     :raises ValueError: when the multihash is invalid
     """
     if not isinstance(multihash, bytes):
-        raise TypeError("multihash should be bytes")
+        raise TypeError(f"multihash should be bytes, not {type(multihash)}")
     if not is_valid(multihash):
         raise ValueError("invalid multihash")
 
