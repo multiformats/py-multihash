@@ -1,0 +1,3 @@
+Synced supported multihash codes with the upstream multicodec ``table.csv`` (including
+``kt-256`` and expanded ``Func`` coverage) and added a bidirectional spec compliance
+test against that table.
