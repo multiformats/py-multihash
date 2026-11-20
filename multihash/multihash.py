@@ -41,12 +41,6 @@ class Multihash(namedtuple("Multihash", "code,name,length,digest")):
     verification, and compatibility with both py-multihash and pymultihash APIs.
     """
 
-    # Type annotations for namedtuple fields (for static type checkers)
-    code: int
-    name: str
-    length: int
-    digest: bytes
-
     __slots__ = ()
 
     def __new__(cls, code=None, name=None, length=None, digest=None, func=None):
@@ -79,6 +73,8 @@ class Multihash(namedtuple("Multihash", "code,name,length,digest")):
                 _digest = name if isinstance(name, bytes) else b""
 
             # Resolve the function
+            if _func is None:
+                raise TypeError("hash function must be provided")
             try:
                 resolved_func = FuncReg.get(_func)
             except KeyError:

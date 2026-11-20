@@ -1,0 +1,1 @@
+Added pinned ``pyrefly`` typechecking alongside mypy for contributor tooling parity.
