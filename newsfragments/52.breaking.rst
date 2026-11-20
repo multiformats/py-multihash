@@ -1,0 +1,3 @@
+Hash name strings now match the upstream multicodec table: ``id`` is ``identity``,
+``kangarootwelve`` is ``kt-128``, and Skein family names use lowercase ``skein*``
+(previously ``Skein*``). Callers that look up hashes by these string keys must update.

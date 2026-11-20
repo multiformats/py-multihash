@@ -64,6 +64,11 @@ Ready to contribute? Here's how to set up `multihash` for local development.
 
     $ git clone git@github.com:your_name_here/py-multihash.git
 
+   Spec compliance and vector tests need git submodules::
+
+    $ cd py-multihash
+    $ git submodule update --init --recursive
+
 3. Install your local copy into a virtualenv. Create and activate a virtual environment::
 
     $ python -m venv venv
